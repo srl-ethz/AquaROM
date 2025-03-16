@@ -9,9 +9,9 @@
 clear; 
 close all; 
 clc
-if(~isdeployed)
-  cd(fileparts(matlab.desktop.editor.getActiveFilename));
-end
+% if(~isdeployed)
+%   cd(fileparts(matlab.desktop.editor.getActiveFilename));
+% end
 set(groot,'defaultAxesTickLabelInterpreter','latex');  
 set(groot,'defaulttextinterpreter','latex');
 
