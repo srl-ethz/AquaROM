@@ -40,7 +40,7 @@
 % Additional notes: Only test for candidate dorsal nodes that are aligned
 % with the spine nodes. 
 %
-% Last modified: 02/05/2024, Mathieu Dubied, ETH Zurich
+% Last modified: 16/03/2025, Mathieu Dubied, ETH Zurich
 function [allDorsalNodesIdx,matchedDorsalNodesIdx,dorsalNodesElementsVec,matchedDorsalNodesZPos] = ....
     find_dorsal_nodes(elements, nodes, spineElements, nodeIdxPosInElements)
        
@@ -50,7 +50,7 @@ function [allDorsalNodesIdx,matchedDorsalNodesIdx,dorsalNodesElementsVec,matched
     upHalfIdx = find(nodes(:,2)==0 & nodes(:,3)>0);
 
     % get nodes that are part of the skin
-    [skin,~,~,~] = getSkin3D(elements);
+    [skin,~] = getSkin3D(elements);
     
     % find common node indexes between skin and up Half Idx
     % note: it also contains the skin nodes on the tail and head

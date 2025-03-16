@@ -39,7 +39,7 @@ exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
 %% ITERATIVE TESTING OF MULTIPLE CASES ____________________________________
 
 % Vector of element counts
-elements_vec = [1272, 4270]; % Number of elements for each input file
+elements_vec = [4270]; % Number of elements for each input file
 kActu_values = [3.0e5];    % Actuation values 1.0e5,2.0e5,3.0e5,4.0e5
 
 % 4270el:   5.0e5 limit (doesn't make it)
@@ -99,15 +99,15 @@ for elem_idx = 1:length(elements_vec)
         kActu = kActu_values(elem_idx,k_idx);  % Get current actuation value
     
         % FOM Simulation __________________________________
-        tStartFOM = tic;
-        fprintf('Building and solving FOM for %d elements, kActu: %.3f...\n', num_elements, kActu);
-        [Assembly, tailProperties, spineProperties, dragProperties, actuLeft, actuRight] = ...
-            build_FOM_3D(Mesh_FOM, nodes, elements, muscleBoundaries);
-        timeFOMBuild = toc(tStartFOM);
-        tStartFOMSolve = tic;
-        TI_NL_FOM = solve_EoMs_FOM(Assembly, elements, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax);
-        timeFOMSolve = toc(tStartFOMSolve);
-        timeFOM = toc(tStartFOM);
+%         tStartFOM = tic;
+%         fprintf('Building and solving FOM for %d elements, kActu: %.3f...\n', num_elements, kActu);
+%         [Assembly, tailProperties, spineProperties, dragProperties, actuLeft, actuRight] = ...
+%             build_FOM_3D(Mesh_FOM, nodes, elements, muscleBoundaries);
+%         timeFOMBuild = toc(tStartFOM);
+%         tStartFOMSolve = tic;
+%         TI_NL_FOM = solve_EoMs_FOM(Assembly, elements, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax);
+%         timeFOMSolve = toc(tStartFOMSolve);
+%         timeFOM = toc(tStartFOM);
            
         % ROM Simulation __________________________________
         tStartROM = tic;
@@ -210,7 +210,37 @@ for elem_idx = 1:length(elements_vec)
         max_uHead_PROM_5 = max(uHead_PROM_5(1, :));
         max_uTail_PROM_8 = max(uTail_PROM_8(2, :));   
         max_uHead_PROM_8 = max(uHead_PROM_8(1, :));
-     
+        
+%         % Calculate absolute differences and relative errors
+%         abs_diff_Tail = max_uTail_ROM - max_uTail_FOM;
+%         abs_diff_Head = max_uHead_ROM - max_uHead_FOM;
+%         rel_error_Tail = abs_diff_Tail / max_uTail_FOM;
+%         rel_error_Head = abs_diff_Head / max_uHead_FOM;
+%         
+%         abs_diff_Tail_ROM_PROM_3 = max_uTail_PROM_3 - max_uTail_ROM;
+%         abs_diff_Head_ROM_PROM_3 = max_uHead_PROM_3 - max_uHead_ROM;
+%         abs_diff_Tail_ROM_PROM_5 = max_uTail_PROM_5 - max_uTail_ROM;
+%         abs_diff_Head_ROM_PROM_5 = max_uHead_PROM_5 - max_uHead_ROM;
+%         abs_diff_Tail_ROM_PROM_8 = max_uTail_PROM_8 - max_uTail_ROM;
+%         abs_diff_Head_ROM_PROM_8 = max_uHead_PROM_8 - max_uHead_ROM;
+%         rel_error_Tail_ROM_PROM_3 = abs_diff_Tail_ROM_PROM_3 / max_uTail_ROM;
+%         rel_error_Head_ROM_PROM_3 = abs_diff_Head_ROM_PROM_3 / max_uHead_ROM;
+%         rel_error_Tail_ROM_PROM_5 = abs_diff_Tail_ROM_PROM_5 / max_uTail_ROM;
+%         rel_error_Head_ROM_PROM_5 = abs_diff_Head_ROM_PROM_5 / max_uHead_ROM;
+%         rel_error_Tail_ROM_PROM_8 = abs_diff_Tail_ROM_PROM_8 / max_uTail_ROM;
+%         rel_error_Head_ROM_PROM_8 = abs_diff_Head_ROM_PROM_8 / max_uHead_ROM;
+        
+        % Store results in the results_matrix
+%         results_matrix(row_idx, :) = [num_elements, kActu, ...
+%             max_uTail_FOM, max_uTail_ROM, abs_diff_Tail, rel_error_Tail, ...
+%             max_uHead_FOM, max_uHead_ROM, abs_diff_Head, rel_error_Head, ...
+%             rel_error_Tail_ROM_PROM_3, rel_error_Head_ROM_PROM_3, ...
+%             rel_error_Tail_ROM_PROM_5, rel_error_Head_ROM_PROM_5, ...
+%             rel_error_Tail_ROM_PROM_8, rel_error_Head_ROM_PROM_8, ...
+%             timeFOMBuild, timeROMBuild, timeFOMSolve, timeROMSolve, timeFOM, timeROM, ...
+%             timePROMBuild_3, timePROMSolve_3, timePROM_3, ...
+%             timePROMBuild_5, timePROMSolve_5, timePROM_5, ...
+%             timePROMBuild_8, timePROMSolve_8, timePROM_8];
         results_matrix(row_idx, :) = [num_elements, kActu, ...
             max_uTail_FOM, max_uTail_ROM, ...
             max_uHead_FOM, max_uHead_ROM, ...
@@ -224,6 +254,14 @@ for elem_idx = 1:length(elements_vec)
             timePROMBuild_8, timePROMSolve_8, timePROM_8];
         row_idx = row_idx + 1;
         
+        % Save results to .mat file
+%         mat_filename = sprintf('Results/Data/temp_A_results_%del_kActu_%.3f.mat', num_elements, kActu);
+%         save(mat_filename, 'timeFOM', 'timeROM', ...
+%             'timeFOMBuild', 'timeROMBuild','timeFOMSolve', 'timeROMSolve', ...
+%             'uTail_FOM', 'uTail_ROM', 'uHead_FOM', 'uHead_ROM', ...
+%             'max_uTail_FOM', 'max_uHead_FOM', 'max_uTail_ROM', 'max_uHead_ROM', ...
+%             'abs_diff_Tail', 'abs_diff_Head', 'rel_error_Tail', 'rel_error_Head');
+%                 
         % Create and save figure comparing FOM and ROM displacements
         f = figure('units','centimeters','position',[3 3 9 6.5]);
 
@@ -257,7 +295,7 @@ for elem_idx = 1:length(elements_vec)
         fig_filename = sprintf('Results/Figures/PDF/AA_Displacement_Comparison_%del_kActu_%.3f.pdf', num_elements, kActu);
         exportgraphics(f, fig_filename, 'Resolution', 600);
         fig_filename = sprintf('Results/Figures/JPG/AA_Displacement_Comparison_%del_kActu_%.3f.jpg', num_elements, kActu);
-        exportgraphics(f, fig_filename, 'Resolution', 600);
+        exportgraphics(f, fig_filename, 'exResolution', 600);
 
         % Close the figure to avoid memory issues during iterations
         close(f);
@@ -265,7 +303,7 @@ for elem_idx = 1:length(elements_vec)
     end
     
     % Save summary table for each mesh
-    results_table_filename = sprintf('Results/Data/AA_results_%del.csv', num_elements);
+    results_table_filename = sprintf('examples/Results/Data/AA_results_%del.csv', num_elements);
     csvwrite(results_table_filename,results_matrix);
 end
 
@@ -276,7 +314,7 @@ nElementsForResult = [1272, 4272, 8086, 16009, 24822]; % Number of elements for 
 % nElementsForResult = [1272, 4270];
 for i=1:length(nElementsForResult)
     nElements = nElementsForResult(i);
-    filename = sprintf('Results/Data/A_results_%del.csv', nElements); % sprintf('Results/Data/temp_A_results_new_%del.csv', nElements);
+    filename = sprintf('examples/Results/Data/A_results_%del.csv', nElements); % sprintf('Results/Data/temp_A_results_new_%del.csv', nElements);
     if i==1
         resultSummary = readmatrix(filename);
     else
