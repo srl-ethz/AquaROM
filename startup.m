@@ -8,7 +8,7 @@ end
 
 % Add directories
 addpath(genpath(strcat(pwd,sslash,'src')));
-addpath(genpath(strcat(pwd,sslash,'src')));
+addpath(genpath(strcat(pwd,sslash,'utils')));
 addpath(genpath(strcat(pwd,sslash,'examples')));
 addpath(genpath(strcat(pwd,sslash,'YetAnotherFEcode')));
 

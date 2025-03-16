@@ -16,11 +16,11 @@ function h = PlotSpineAndTailElements(Nodes,Elements, ...
 %           element is the tail element (a single element)
 %           - ColorTail - color to use when showing the tail
 %
-% Last modified: 10/11/2024, Mathieu Dubied, ETH Zurich
+% Last modified: 16/03/2025, Mathieu Dubied, ETH Zurich
 %--------------------------------------------------------------------------
 
 meshcolor = 'k';
-[skin,~,~,~] = getSkin3D(Elements);      
+[skin,~] = getSkin3D(Elements);      
 skinFaces = skin.';
 nSkinFaces = size(skinFaces,1);         % total number of faces
 nodePerSkinFace = size(skinFaces,2);    % number of nodes per face

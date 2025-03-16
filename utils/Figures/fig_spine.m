@@ -1,5 +1,5 @@
 % ------------------------------------------------------------------------ 
-% create_fig_spine.m
+% fig_spine.m
 % 
 % Description: Create a figure showing the spine and tail element of a
 % given FE mesh
@@ -14,9 +14,9 @@
 % OUTPUTS:   
 % (1) fig: a figure
 %
-% Last modified: 14/01/2024, Mathieu Dubied, ETH Zurich
+% Last modified: 16/03/2025, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
-function fig = create_fig_spine(elements, nodes, colorSpine, colorTail, figsize)
+function fig = fig_spine(elements, nodes, colorSpine, colorTail, figsize)
 
     fig = figure('Name', 'Spine and tail elements','units','centimeters','position',figsize);
     

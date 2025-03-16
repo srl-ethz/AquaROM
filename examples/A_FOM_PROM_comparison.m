@@ -50,7 +50,7 @@ U_5 = [z_tail,z_head,y_linLongTail,y_head,y_ellipseFish];
 U_8 = [z_tail,z_head,y_linLongTail,y_head,y_ellipseFish,...
         z_smallFish, z_notch, xz_concaveTail];
 %% FIGURE HIGHLIGHTING THE SPINE AND TAIL ELEMENT _________________________
-f_spine = create_fig_spine(elements, nodes, 'cyan', 'r', [1 2 16 8]);
+f_spine = fig_spine(elements, nodes, 'cyan', 'r', [1 2 16 8]);
 
 %% FIGURE A1 (muscles, rigid part, VM) ____________________________________
 f_A1 = create_fig_muscle_placement_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC);
