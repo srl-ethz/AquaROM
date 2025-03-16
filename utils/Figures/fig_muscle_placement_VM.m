@@ -1,5 +1,5 @@
 % ------------------------------------------------------------------------ 
-% create_fig_muscle_placement_VM.m
+% fig_muscle_placement_VM.m
 %
 % Description: create a figure showing the muscle placement and the first
 % vibration mode (VM)
@@ -26,9 +26,9 @@
 % Additional notes: this function is not written in the most generic way.
 % It purpose is to facilitate the creation of a mesh in our examples.
 %
-% Last modified: 14/01/2025, Mathieu Dubied, ETH Zurich
+% Last modified: 16/03/2025, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
-function fig = create_fig_muscle_placement_VM(Mesh, nodes, elements, muscleBoundaries,  esetBC)
+function fig = fig_muscle_placement_VM(Mesh, nodes, elements, muscleBoundaries,  esetBC)
 
     [Lx, Ly, Lz] = mesh_dimensions_3D(nodes);
 
@@ -120,7 +120,7 @@ function fig = create_fig_muscle_placement_VM(Mesh, nodes, elements, muscleBound
     % subplot 1: muscles' placement
     ax1 = subplot('Position',pos1);
 
-    Plot2MusclesAndConstraints(nodes,elements, ...
+    PlotMeshWith3Sets(nodes,elements, ...
         leftMuscle,'green',rightMuscle,'blue', ...
         fixedElements,'red');
     % ------------------------------------------------------------
@@ -132,7 +132,7 @@ function fig = create_fig_muscle_placement_VM(Mesh, nodes, elements, muscleBound
     O = [-Lx,-Ly/2,-Lz/2];
     plotcube(L,O,.05,[0 0 0]);
     v1 = reshape(-VMn(:,1), 3, []).';
-    PlotFieldonDeformedMesh(nodes, elementPlot, v1, 'factor', max(nodes(:,2)),'lineWidth',0.2);
+    PlotFieldonDeformedMesh_ext(nodes, elementPlot, v1, 'factor', max(nodes(:,2)),'lineWidth',0.2);
 
     
     % Colorbar

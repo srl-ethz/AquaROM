@@ -25,7 +25,7 @@ load('parameters.mat')
 muscleBoundaries = [0.83,0.6]; % 0.82 for the plot
 %%
 % specify and create FE mesh
-filename = 'InputFiles/3d_rectangle_8086el';%_24822el'; %'3d_rectangle_8086el'
+filename = 'examples/InputFiles/3d_rectangle_8086el';%_24822el'; %'3d_rectangle_8086el'
 %'3d_rectangle_1272el';%'3d_rectangle_1272el';%'3d_rectangle_660el'; 4270,
 %16009 3d_rectangle_47423el
 
@@ -53,8 +53,8 @@ U_8 = [z_tail,z_head,y_linLongTail,y_head,y_ellipseFish,...
 f_spine = fig_spine(elements, nodes, 'cyan', 'r', [1 2 16 8]);
 
 %% FIGURE A1 (muscles, rigid part, VM) ____________________________________
-f_A1 = create_fig_muscle_placement_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC);
-fig_filename = sprintf('Setup/Figures/06_A_muscles_placement_VM_%del.pdf', Mesh_ROM.nElements);
+f_A1 = fig_muscle_placement_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC);
+fig_filename = sprintf('examples/Setup/Figures/06_A_muscles_placement_VM_%del.pdf', Mesh_ROM.nElements);
 exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
 
 %% SIMULATION PARAMETERS __________________________________________________
