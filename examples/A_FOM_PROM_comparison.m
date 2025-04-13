@@ -39,8 +39,20 @@ exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
 %% ITERATIVE TESTING OF MULTIPLE CASES ____________________________________
 
 % Vector of element counts
-elements_vec = [1272, 4270]; % Number of elements for each input file
-kActu_values = [3.0e5];    % Actuation values 1.0e5,2.0e5,3.0e5,4.0e5
+elements_vec = [1272, 4270,8086, 16009]; % Number of elements for each input file
+kActu_values = {[6.0]*1e5, ...
+                [4.0]*1e5, ...
+                [1.0, 2.0, 2.5, 3.0, 3.5, 4.0]*1e5, ...
+                [1.0, 2.0, 2.5, 3.0, 3.5, 4.0]*1e5};
+            
+            %, 2.0, 3.0, 4.0, 5.0, 6.0, 6.5
+            %, 2.0, 2.5, 3.0, 3.5, 4.0
+% elements_vec = [8086, 16009]; % Number of elements for each input file
+% kActu_values = {[1.0, 2.0, 2.5, 3.0, 3.5, 4.0], ...
+%                 [1.0, 2.0, 2.5, 3.0, 3.5, 4.0]};
+%             
+% elements_vec = [24822]; % Number of elements for each input file
+% kActu_values = {[0.5,1.0, 2.0, 2.5, 2.75]};
 
 % 4270el:   5.0e5 limit (doesn't make it)
 % 8086el:   4.0e5 just make it
@@ -52,26 +64,26 @@ kActu_values = [3.0e5];    % Actuation values 1.0e5,2.0e5,3.0e5,4.0e5
 h = 0.02;
 tmax = 2.0;
 
-% Pre-allocate matrix to store results. 27 columns
-% Columns:  [num_elements, kActu, ...
-%           max_uTail_FOM, max_uTail_ROM, ...
-%           max_uHead_FOM, max_uHead_ROM, ...
-%           max_uHead_PROM_3, max_uTail_PROM_3, ...
-%           max_uHead_PROM_5, max_uTail_PROM_5, ...
-%           max_uHead_PROM_8, max_uTail_PROM_8, ...
-%           timeFOMBuild, timeROMBuild, timeFOMSolve, ... 
-%           timeROMSolve, timeFOM, timeROM, ...
-%           timePROMBuild_3, timePROMSolve_3, timePROM_3, ...
-%           timePROMBuild_5, timePROMSolve_5, timePROM_5, ...
-%           timePROMBuild_8, timePROMSolve_8, timePROM_8];
-results_matrix = zeros(length(elements_vec) * numel(kActu_values), 27); 
-
 % Initialize row index for results_matrix
 row_idx = 1;
 
 % Loop over each element count and each actuation value
 for elem_idx = 1:length(elements_vec)
     num_elements = elements_vec(elem_idx); % Get current number of elements
+    kValues_for_n_el = kActu_values{elem_idx};
+    % Pre-allocate matrix to store results. 27 columns
+    % Columns:  [num_elements, kActu, ...
+    %           max_uTail_FOM, max_uTail_ROM, ...
+    %           max_uHead_FOM, max_uHead_ROM, ...
+    %           max_uHead_PROM_3, max_uTail_PROM_3, ...
+    %           max_uHead_PROM_5, max_uTail_PROM_5, ...
+    %           max_uHead_PROM_8, max_uTail_PROM_8, ...
+    %           timeFOMBuild, timeROMBuild, timeFOMSolve, ... 
+    %           timeROMSolve, timeFOM, timeROM, ...
+    %           timePROMBuild_3, timePROMSolve_3, timePROM_3, ...
+    %           timePROMBuild_5, timePROMSolve_5, timePROM_5, ...
+    %           timePROMBuild_8, timePROMSolve_8, timePROM_8];
+    results_matrix = zeros(length(kValues_for_n_el), 27); 
     
     % Load the FE mesh for FOM and ROM
     filename = strcat('InputFiles/3d_rectangle_', num2str(num_elements), 'el');  % Construct filena
@@ -95,8 +107,8 @@ for elem_idx = 1:length(elements_vec)
         Mesh_FOM.set_essential_boundary_condition([nsetBC{l}], 2:3, 0);
     end
     
-    for k_idx = 1:size(kActu_values,2)
-        kActu = kActu_values(elem_idx,k_idx);  % Get current actuation value
+    for k_idx = 1:length(kValues_for_n_el)
+        kActu = kValues_for_n_el(k_idx);  % Get current actuation value
     
         % FOM Simulation __________________________________
         tStartFOM = tic;
@@ -254,9 +266,9 @@ for elem_idx = 1:length(elements_vec)
         end
 
         % Save figure
-        fig_filename = sprintf('Results/Figures/PDF/AA_Displacement_Comparison_%del_kActu_%.3f.pdf', num_elements, kActu);
+        fig_filename = sprintf('Results/Figures/PDF/A_Displacement_Comparison_%del_kActu_%.3f.pdf', num_elements, kActu);
         exportgraphics(f, fig_filename, 'Resolution', 600);
-        fig_filename = sprintf('Results/Figures/JPG/AA_Displacement_Comparison_%del_kActu_%.3f.jpg', num_elements, kActu);
+        fig_filename = sprintf('Results/Figures/JPG/A_Displacement_Comparison_%del_kActu_%.3f.jpg', num_elements, kActu);
         exportgraphics(f, fig_filename, 'Resolution', 600);
 
         % Close the figure to avoid memory issues during iterations
@@ -265,7 +277,7 @@ for elem_idx = 1:length(elements_vec)
     end
     
     % Save summary table for each mesh
-    results_table_filename = sprintf('Results/Data/AA_results_%del.csv', num_elements);
+    results_table_filename = sprintf('Results/Data/A_results_%del.csv', num_elements);
     csvwrite(results_table_filename,results_matrix);
 end
 

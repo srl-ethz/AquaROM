@@ -27,7 +27,10 @@
 function [mesh, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid)
     
     % read Abaqus mesh
-    [nodes, elements, ~, ~] = mesh_ABAQUSread(filename);
+    [nodes, elements, ~, ~] = mesh_ABAQUSread_ext(filename);
+%     meshinfo = abqmesh(filename, 0);
+%     nodes = meshinfo.nodes;
+%     elements = meshinfo.elem;
 
     % convert to cm to m and reshape (specific to our examples)
     % original size: 35 x 10 x 20 [cm], final size: 20 x 4 x 10 [cm]

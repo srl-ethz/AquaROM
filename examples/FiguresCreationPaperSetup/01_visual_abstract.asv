@@ -60,28 +60,28 @@ hold off
 
 
 % 2. Shape variations
-annotation('textbox', [0.3+x_shift_text, 0.8, 0.57, 0.05], 'String', '2. Choose shape variations', ...
+annotation('textbox', [0.3+x_shift_text, 0.8, 0.55, 0.05], 'String', '2. Choose shape variations', ...
                'EdgeColor', 'none', 'FontSize', 12,  'Interpreter','latex', ...
                'BackgroundColor','White', 'VerticalAlignment', 'middle');
-annotation('textbox', [0.3+x_shift_text, 0.75, 0.57, 0.05], 'String', '\hspace*{1.25em}defining a search space', ...
+annotation('textbox', [0.3+x_shift_text, 0.8, 0.55, 0.05], 'String', 'defining a search space', ...
                'EdgeColor', 'none', 'FontSize', 12,  'Interpreter','latex', ...
-               'VerticalAlignment', 'middle');
-ax = axes('Position', [0.3+x_shift_text,0.53, 0.2, 0.2]);  
+               'BackgroundColor','White', 'VerticalAlignment', 'middle');
+ax = axes('Position', [0.3+x_shift_text,0.57, 0.2, 0.2]);  
 v = reshape(U(:,7)*0.9, 3, []).';
 PlotFieldonDeformedMesh_ext(nodes, elementPlot, v, 'factor', 1, 'lineWidth', lineWidthPatchForPlot);
-axes('Position', [0.425+x_shift_text,0.53, 0.2, 0.2]);
+axes('Position', [0.425+x_shift_text,0.57, 0.2, 0.2]);
 v = reshape(U(:,3)*0.9, 3, []).';
 PlotFieldonDeformedMesh_ext(nodes, elementPlot, v, 'factor', 1, 'lineWidth', lineWidthPatchForPlot);
-axes('Position', [0.55+x_shift_text,0.53, 0.2, 0.2]);
+axes('Position', [0.55+x_shift_text,0.57, 0.2, 0.2]);
 v = reshape(U(:,8)*0.5, 3, []).';
 PlotFieldonDeformedMesh_ext(nodes, elementPlot, v, 'factor', 1, 'lineWidth', lineWidthPatchForPlot);
-axes('Position', [0.675+x_shift_text,0.53, 0.2, 0.2]);
+axes('Position', [0.675+x_shift_text,0.57, 0.2, 0.2]);
 v = reshape(U(:,5)*0.9, 3, []).';
 PlotFieldonDeformedMesh_ext(nodes, elementPlot, v, 'factor', 1, 'lineWidth', lineWidthPatchForPlot);
-annotation('textbox', [0.79+x_shift_text,0.56, 0.6, 0.05], 'String', '...', ...
+annotation('textbox', [0.79+x_shift_text,0.6, 0.6, 0.05], 'String', '...', ...
                'EdgeColor', 'none', 'FontSize', 16, 'Interpreter','latex');
            
-axes('Position', [0.33+x_shift_text,0.51, 0.62, 0.305]); 
+axes('Position', [0.33+x_shift_text,0.55, 0.62, 0.275]); 
 rectangle('Position',[0,0.0,1,1])
 xlim([0 1])
 ylim([0 1])
@@ -89,19 +89,19 @@ axis off
 
 
 % 3. Optimisation pipeline
-annotation('textbox', [0.3+x_shift_text, 0.41, 0.44, 0.05], 'String', '3. Run optimisation', ...
+annotation('textbox', [0.3+x_shift_text, 0.45, 0.44, 0.05], 'String', '3. Run optimisation', ...
                'EdgeColor', 'none', 'FontSize', 12, 'Interpreter','latex', ...
                'BackgroundColor','White', 'VerticalAlignment', 'middle');
-annotation('textbox', [0.35+x_shift_text, 0.36, 0.6, 0.05], 'String', '- Create PROM', ...
+annotation('textbox', [0.35+x_shift_text, 0.4, 0.6, 0.05], 'String', '- Create PROM', ...
                'EdgeColor', 'none', 'FontSize', 12, 'Interpreter','latex');
-annotation('textbox', [0.35+x_shift_text, 0.31, 0.6, 0.05], 'String', '- Solve EoMs and sensitivity', ...
+annotation('textbox', [0.35+x_shift_text, 0.35, 0.6, 0.05], 'String', '- Solve EoMs and sensitivity', ...
                'EdgeColor', 'none', 'FontSize', 12, 'Interpreter','latex');
-annotation('textbox', [0.35+x_shift_text, 0.26, 0.6, 0.05], 'String', '- Take gradient step', ...
+annotation('textbox', [0.35+x_shift_text, 0.3, 0.6, 0.05], 'String', '- Take gradient step', ...
                'EdgeColor', 'none', 'FontSize', 12, 'Interpreter','latex');
 
 % box
 % annotation('textbox', [0.325, 0.22, 0.65, 0.20], 'String','');
-axes('Position', [0.33+x_shift_text,0.235, 0.62, 0.2]); 
+axes('Position', [0.33+x_shift_text,0.275, 0.62, 0.2]); 
 rectangle('Position',[0,0.0,1,1])
 xlim([0 1])
 ylim([0 1])
