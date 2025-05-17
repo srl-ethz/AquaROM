@@ -1,8 +1,10 @@
 % ------------------------------------------------------------------------ 
-% 3D shape optimisation of a fish.
-% 
-% Last modified: 16/01/2025, Mathieu Dubied, ETH Zurich
+% B_shape_optimisation.m
 %
+% Description: 3D shape optimisation of a fish, to obtain best swimming
+% performance.
+% 
+% Last modified: 17/05/2025, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
 clear; 
 close all; 
@@ -20,15 +22,13 @@ set(groot,'defaultAxesTickLabelInterpreter','latex');
 load('parameters.mat') 
 
 % specify and create FE mesh
-filename ='InputFiles/3d_rectangle_8086el'; % 24822el' ;%'3d_rectangle_8086el';
+filename ='InputFiles/3d_rectangle_8086el';
 
-
-%'3d_rectangle_1272el';%'3d_rectangle_1272el';%'3d_rectangle_660el'; 
 [MeshNominal, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
 [Lx, Ly, Lz] = mesh_dimensions_3D(nodes);
 n_elements = size(elements,1);
 
-muscleBoundaries = [0.83,0.6]; % 0.82 for the plot
+% muscleBoundaries = [0.83,0.6]; % 0.82 for the plot
 
 %% SHAPE VARIATIONS _______________________________________________________
 
@@ -61,7 +61,7 @@ f1 = figure('units','centimeters','position',[3 3 10 7],'name','Shape-varied mes
 elementPlot = elements(:,1:4); hold on 
 v1 = reshape(U*xiPlot, 3, []).';
 S = 1.0;
-hf=PlotFieldonDeformedMesh(nodes, elementPlot, v1, 'factor', S);
+hf = PlotFieldonDeformedMesh_ext(nodes, elementPlot, v1, 'factor', 1.0,'lineWidth',0.2);
 L = [Lx,Ly,Lz];
 O = [-Lx,-Ly/2,-Lz/2];
 plotcube(L,O,.05,[0 0 0]);
@@ -75,7 +75,7 @@ set(f1,'Units','centimeters');
 %% OPTIMIZATION PARAMETERS
 h = 0.02;
 tmax = 2.0;
-kActu = 4.0e5;    % multiplicative factor for the actuation forces 
+kActu = 3.0*1e5;    % multiplicative factor for the actuation forces 
 
 %% OPTIMISATION SO1 _______________________________________________________
 % Typical results:  -0.4952, 0.3272, 0.2974
@@ -217,7 +217,7 @@ save(filename,'xiStar_3','xiEvo_3','LEvo_3','LwoBEvo_3','tOpti_3','nIt_3','tPerI
 
 %% PLOT OPTIMAL SHAPE _____________________________________________________
 
-SOIdx = 3;
+SOIdx = 1;
 switch SOIdx
     case 1
         xiStar = xiStar_1;
@@ -240,12 +240,12 @@ v = reshape(U*xiStar, 3, []).';
 
 % View 1
 ax1 = nexttile(t);
-PlotFieldonDeformedMesh(nodes, elementPlot, v, 'factor', 1, 'lineWidth',0.2);
+PlotFieldonDeformedMesh_ext(nodes, elementPlot, v, 'factor', 1, 'lineWidth',0.2);
 plotcube(L,O,.05,[0 0 0]);
 
 % View 2
 ax2 = nexttile(t);
-PlotFieldonDeformedMesh(nodes, elementPlot, v, 'factor', 1, 'lineWidth',0.2);
+PlotFieldonDeformedMesh_ext(nodes, elementPlot, v, 'factor', 1, 'lineWidth',0.2);
 plotcube(L,O,.05,[0 0 0]);
 view(ax2,[23.28863587057058,35.063216347984103])
 
@@ -258,15 +258,15 @@ exportgraphics(f_opt_shape,strcat(fig_title,'.pdf'),'Resolution',1200)
 f_cost = figure('units','centimeters','position',[3 3 9 6]);
 hold on
 plot(LwoBEvo_1,'LineWidth',1)
-plot(LwoBEvo_2,'--','LineWidth',1)
-plot(LwoBEvo_3,'-.','LineWidth',1)
+% plot(LwoBEvo_2,'--','LineWidth',1)
+% plot(LwoBEvo_3,'-.','LineWidth',1)
 grid on
 ylabel('$$L$$')
 xlabel('Iterations')
 legend('SO1','SO2','SO3')
 hold off
 
-exportgraphics(f_cost,'results/figures/14_SO_cost_evolution.pdf','Resolution',1200)
+% exportgraphics(f_cost,'results/figures/14_SO_cost_evolution.pdf','Resolution',1200)
 % exportgraphics(f_cost,'results/figures/SO_cost_evolution.jpg','Resolution',600)
 
 

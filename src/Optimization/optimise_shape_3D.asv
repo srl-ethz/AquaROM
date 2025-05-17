@@ -38,7 +38,7 @@
 % (5) xEvo:         evolution of the swimming distance
 % (6) xEnergyEvo:   evolution of the swimming distance, normalized by the
 %                   size of the muscles, i.e., normalized by the amount of 
-%                   available energy
+%                       
 %
 % Last modified: 17/05/2025, Mathieu Dubied, ETH Zurich
 
@@ -115,8 +115,7 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
     drawnow
 
 
-    % Solve sensitivity equation (for testing, if we want to solve
-    % sensitivity separately)
+    % Solve sensitivity equation 
     % tic
     % fprintf('____________________\n')
     % fprintf('Solving sensitivity...\n') 
@@ -220,7 +219,7 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
             legend
             drawnow
             
-            % solve sensitivity equation ()
+            % solve sensitivity equation 
             % tic
             % fprintf('____________________\n')
             % fprintf('Solving sensitivity...\n') 
