@@ -117,8 +117,7 @@ fprintf('Computation time per models/EoMs: %.2f\n',tPerIt_1)
 
 % Save results
 filename = sprintf('Results/Data/SO1_results_%d_el_kActu_%.3f.mat', n_elements, kActu);
-save(filename,'xiStar_1','xiEvo_1','LEvo_1','LwoBEvo_1','tOpti_1', ...
-                'xEvo_1','xEnergyEvo_1','nIt_1','rebuildIdx_1','tPerIt_1')
+save(filename,'xiStar_1','xiEvo_1','LEvo_1','LwoBEvo_1','tOpti_1','nIt_1','tPerIt_1')
 
 %% OPTIMISATION SO2 _______________________________________________________
 % Typical results: -0.4767, 0.3332, 0.3694, 0.3752, 0.4036
@@ -156,7 +155,6 @@ tStart = tic;
     'gStepSize',0.0005,...   % set to 0.001 for 4270 el, 0.003 below, 0.0005 for 8086, 0.0002 for 24822
     'nRebuild',5, ...
     'rebuildThreshold',0.15,...
-    'wSize', 5, ...
     'USEJULIA',1);
 tOpti_2 = toc(tStart)/60;   % unit: minutes
 tPerIt_2 = tOpti_2/nIt_2;  
@@ -168,8 +166,7 @@ fprintf('Computation time per models/EoMs: %.2f\n',tPerIt_2)
 
 % Save results
 filename = sprintf('Results/Data/SO2_results_%d_el_kActu_%.3f.mat', n_elements, kActu);
-save(filename,'xiStar_2','xiEvo_2','LEvo_2','LwoBEvo_2','tOpti_2', ...
-                'xEvo_2','xEnergyEvo_2','nIt_2','rebuildIdx_2','tPerIt_2')
+save(filename,'xiStar_2','xiEvo_2','LEvo_2','LwoBEvo_2','tOpti_2','nIt_2','tPerIt_2')
 
 %% OPTIMISATION SO3 _______________________________________________________
 % Typical results: -0.3584,0.3080,0.3893,0.2906,0.4838,0.2701,0.2271,0.2975
@@ -204,10 +201,9 @@ tStart = tic;
     'convCrit',0.015, ...    % set to 0.015 for 8086el, 0.01 below
     'convCritCost',5.0, ...% set to 0.5 for 4270 el, 0.2 below, 5.0 for 8086
     'barrierParam',barrierParam, ...
-    'gStepSize',0.0003, ... % set to 0.005 for 4270 el, 0.003 below, 0.0002 for 8086
+    'gStepSize',0.0002, ... % set to 0.005 for 4270 el, 0.003 below, 0.0002 for 8086
     'nRebuild',5, ...
     'rebuildThreshold',0.15, ...
-    'wSize', 5, ...
     'USEJULIA',1);
 tOpti_3 = toc(tStart)/60; % unit: minutes
 tPerIt_3 = tOpti_3/nIt_3;
@@ -220,13 +216,12 @@ fprintf('Computation time per models/EoMs: %.2f\n',tPerIt_3)
 
 % Save results
 filename = sprintf('Results/Data/SO3_results_%d_el_kActu_%.3f.mat', n_elements, kActu);
-save(filename,'xiStar_3','xiEvo_3','LEvo_3','LwoBEvo_3','tOpti_3', ...
-                'xEvo_3','xEnergyEvo_3','nIt_3','rebuildIdx_3','tPerIt_3')
+save(filename,'xiStar_3','xiEvo_3','LEvo_3','LwoBEvo_3','tOpti_3','nIt_3','tPerIt_3')
 
 
 %% PLOT OPTIMAL SHAPE _____________________________________________________
 
-SOIdx = 3;
+SOIdx = 1;
 switch SOIdx
     case 1
         xiStar = xiStar_1;
@@ -267,7 +262,7 @@ exportgraphics(f_opt_shape,strcat(fig_title,'.pdf'),'Resolution',1200)
 f_cost = figure('units','centimeters','position',[3 3 9 6]);
 hold on
 plot(LwoBEvo_1,'LineWidth',1)
-% plot(LwoBEvo_2,'--','LineWidth',1)
+plot(LwoBEvo_2,'--','LineWidth',1)
 % plot(LwoBEvo_3,'-.','LineWidth',1)
 grid on
 ylabel('$$L$$')
@@ -285,13 +280,13 @@ p1 = plot(xEvo_1*100,'LineWidth',1);
 plot(rebuildIdx_1, xEvo_1(rebuildIdx_1) * 100, 'x', ...
      'MarkerSize', 8, 'LineWidth', 1.5, 'Color', p1.Color);
 p2 = plot(xEvo_2*100,'--','LineWidth',1);
-plot(rebuildIdx_2, xEvo_2(rebuildIdx_2) * 100, 'x', ...
-     'MarkerSize', 8, 'LineWidth', 1.5, 'Color', p2.Color);
-p3 = plot(xEvo_3*100,'-.','LineWidth',1);
+% plot(rebuildIdx_2, xEvo_1(rebuildIdx_2) * 100, 'x', ...
+%      'MarkerSize', 8, 'LineWidth', 1.5, 'Color', p2.Color);
+% plot(xEvo_3,'-.','LineWidth',1)
 grid on
 ylabel('Swimming distance [cm]')
 xlabel('Iterations')
-legend([p1,p2,p3],'SO1','SO2','SO3', 'Location', 'southeast')
+legend('SO1','SO2','SO3', 'Location', 'northwest')
 hold off
 
 % exportgraphics(f_cost,'results/figures/14_SO_cost_evolution.pdf','Resolution',1200)
@@ -303,18 +298,18 @@ hold off
 f_cost = figure('units','centimeters','position',[3 3 9 6]);
 hold on
 p1 = plot(xEnergyEvo_1*100,'LineWidth',1);
-% plot(rebuildIdx_1+1, xEnergyEvo_1(rebuildIdx_1+1) * 100, 'x', ...
-%      'MarkerSize', 8, 'LineWidth', 1.0, 'Color', p1.Color);
+plot(rebuildIdx_1+1, xEnergyEvo_1(rebuildIdx_1+1) * 100, 'x', ...
+     'MarkerSize', 8, 'LineWidth', 1.0, 'Color', p1.Color);
 p2 = plot(xEnergyEvo_2*100,'--','LineWidth',1);
 % plot(rebuildIdx_2+1, xEnergyEvo_2(rebuildIdx_2+1) * 100, 'x', ...
 %      'MarkerSize', 8, 'LineWidth', 1.0, 'Color', p2.Color)
-p3 = plot(xEnergyEvo_3*100,'-.','LineWidth',1);
+% plot(xEnergyEvo_3,'-.','LineWidth',1)
 % plot(rebuildIdx_3+1, xEnergyEvo_3(rebuildIdx_3+1) * 100, 'x', ...
 %      'MarkerSize', 8, 'LineWidth', 1.0, 'Color', p3.Color)
 grid on
 ylabel('Normalized swimming distance')
 xlabel('Iterations')
-legend([p1,p2,p3], 'SO1','SO2','SO3', 'Location', 'southeast')
+legend([p1,p2], 'SO1','SO2','SO3', 'Location', 'northwest')
 hold off
 
 % exportgraphics(f_cost,'results/figures/14_SO_cost_evolution.pdf','Resolution',1200)
