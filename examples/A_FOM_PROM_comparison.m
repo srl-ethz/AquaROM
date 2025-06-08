@@ -4,7 +4,7 @@
 % Description: Accuracy and computational speed comparison between the FOM
 % and the (P)ROM formulations.
 %
-% Last modified: 13/04/2025, Mathieu Dubied, ETH Zurich
+% Last modified: 08/06/2025, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
 clear; 
 close all; 
@@ -15,7 +15,6 @@ end
 set(groot,'defaultAxesTickLabelInterpreter','latex');  
 set(groot,'defaulttextinterpreter','latex');
 load('parameters.mat') 
-% muscleBoundaries = [0.79,0.60]
 
 %% FIGURES FOR SETUP ______________________________________________________                                                   
 % specify and create FE mesh (4270, 8086, 16009, 24822)
@@ -29,46 +28,28 @@ for l=1:length(nsetBC)
 end  
 
 % figure highlighting the spine elements
-% f_spine = fig_spixne(elements, nodes, 'cyan', 'r', [1 2 16 8]);
+f_spine = fig_spixne(elements, nodes, 'cyan', 'r', [1 2 16 8]);
 
 % FIGURE 6 of the paper: muscle placement and 1st VM
 f_A1 = fig_muscle_placement_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC);
 fig_filename = sprintf('Setup/Figures/06_A_muscles_placement_VM_%del.pdf', Mesh_ROM.nElements);
-% exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
+exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
 
 
 %% ITERATIVE TESTING OF MULTIPLE CASES ____________________________________
 
 % Vector of element counts
-elements_vec = [8086]; % Number of elements for each input file
-kActu_values = {%[5.5, 4.9, 4.2, 3.4, 2.5, 1.5, 0.5]*1e5, ...
-%                 [4.2, 3.6, 3.0, 2.4, 1.8, 1.2, 0.6]*1e5 ...
-                [3.1]*1e5%, 2.6, 2.1, 1.6, 1.1, 0.6, 0.1]*1e5, ...
-%                 [2.9, 2.5, 2.0, 1.6, 1.1, 0.6, 0.1 ]*1e5, ...
-%                 [2.25, 2.0, 1.7, 1.3, 1.0, 0.7, 0.3]*1e5
+elements_vec = [1272, 4270, 8086, 16009, 24822]; % Number of elements for each input file
+kActu_values = {[5.5, 4.9, 4.2, 3.4, 2.5, 1.5, 0.5]*1e5, ...
+                [4.2, 3.6, 3.0, 2.4, 1.8, 1.2, 0.6]*1e5 ...
+                [3.1, 2.6, 2.1, 1.6, 1.1, 0.6, 0.1]*1e5, ...
+                [2.9, 2.5, 2.0, 1.6, 1.1, 0.6, 0.1 ]*1e5, ...
+                [2.25, 2.0, 1.7, 1.3, 1.0, 0.7, 0.3]*1e5
                 };
             
-            %, 2.0, 3.0, 4.0, 5.0, 6.0, 6.5
-            %, 2.0, 2.5, 3.0, 3.5, 4.0
-% elements_vec = [8086, 16009]; % Number of elements for each input file
-% kActu_values = {[1.0, 2.0, 2.5, 3.0, 3.5, 4.0], ...
-%                 [1.0, 2.0, 2.5, 3.0, 3.5, 4.0]};
-%             
-% elements_vec = [24822]; % Number of elements for each input file
-% kActu_values = {[0.5,1.0, 2.0, 2.5, 2.75]};
-
-% 1272, 4270, 8086, 16009 8086, 16009
-% 4270el:   5.0e5 limit (doesn't make it)
-% 8086el:   4.0e5 just make it
-% 16009el:  3.5e5 just ok, 4.0 for 
-% 16009el:  4.0e5 just ok
-% 24822el:  3.0e5 not ok, 2.75 ok
-
 % Set simulation parameters
 h = 0.02;
 tmax = 2.0;
-
-
 
 % Loop over each element count and each actuation value
 for elem_idx = 1:length(elements_vec)
@@ -241,53 +222,11 @@ for elem_idx = 1:length(elements_vec)
               timePROMBuild_8, timePROMSolve_8, timePROM_8];
         
         % Create and save figure comparing FOM and ROM displacements
-        f = figure('units','centimeters','position',[3 3 9 7.0]);
-
-        % x-position (Head)
-        subplot(2,1,1);
-        hold on;
-        plot(timePlot, uHead_FOM(1,:), '--', 'DisplayName', 'FOM');
-        plot(timePlot, uHead_ROM(1,:), 'DisplayName', 'ROM');
-        plot(timePlot, uHead_PROM_3(1,:), '-.', 'DisplayName', 'PROM 3p');
-        plot(timePlot, uHead_PROM_5(1,:), '-.', 'DisplayName', 'PROM 5p');
-        plot(timePlot, uHead_PROM_8(1,:), '-.', 'DisplayName', 'PROM 8p');
-        grid on;
-        xlabel('Time [s]');
-%         % --- Left y-axis: raw cm
-%         yyaxis left
-        ylTop = ylabel('Head x-position [cm]');
-% 
-%         % --- Right y-axis: scaled to % of body length
-%         yyaxis right
-%         ax = gca; % get current axes
-%         ax.YLim = ax.YLim / Lx * 100; % scale limits to % body length
-%         yticks_cm = yticks; % get new yticks
-%         yticklabels(yticks_cm / Lx * 100); % set tick labels correctly
-%         ylabel('Head x-position [% of body length]');
-% 
-%         % --- Back to left for legend
-%         yyaxis left
-        lgd = legend('Location','northwest', 'interpreter', 'latex');
-        lgd.Position(2) = lgd.Position(2) + 0.08;
-    
-        % y-position (Tail)
-        subplot(2,1,2);
-        hold on;
-        plot(timePlot, uTail_FOM(2,:), '--', 'DisplayName', 'FOM');
-        plot(timePlot, uTail_ROM(2,:), 'DisplayName', 'ROM');
-        plot(timePlot, uTail_PROM_3(2,:), '-.', 'DisplayName', 'PROM 3p');
-        plot(timePlot, uTail_PROM_5(2,:), '-.', 'DisplayName', 'PROM 5p');
-        plot(timePlot, uTail_PROM_8(2,:), '-.', 'DisplayName', 'PROM 8p');
-        grid on;
-        xlabel('Time [s]');
-        ylBottom = ylabel('Tail y-position [cm]');
-        
-        % Align y-axis labels
-        if ylTop<ylBottom
-            set(ylBottom,'Pos',[ylTop.Position(1) ylBottom.Position(2) ylBottom.Position(3)]);
-        else
-            set(ylTop,'Pos',[ylBottom.Position(1) ylTop.Position(2) ylTop.Position(3)]);
-        end
+        [uHead_sol, uTail_sol] = wrap_head_tail_results(uHead_FOM, uHead_ROM, ...
+            uHead_PROM_3, uHead_PROM_5, uHead_PROM_8, uTail_FOM, uTail_ROM, ...
+            uTail_PROM_3, uTail_PROM_5, uTail_PROM_8);
+        f = fig_head_tail_motion(uHead_sol, uTail_sol, timePlot, Lx, Ly, ...
+            []);    % to add rectangle: [0.875 0.839 0.04 0.07]
         
         % Save figure
         fig_filename = sprintf('Results/Figures/PDF/A_Displacement_Comparison_%del_kActu_%.3f.pdf', num_elements, kActu);
@@ -296,99 +235,21 @@ for elem_idx = 1:length(elements_vec)
         exportgraphics(f, fig_filename, 'Resolution', 600);
 
         % Close the figure to avoid memory issues during iterations
-%         close(f);
+        close(f);
         
     end
     
     % Save summary table for each mesh
-%     results_table_filename = sprintf('Results/Data/A_results_%del.csv', num_elements);
-%     csvwrite(results_table_filename,results_matrix);
+    results_table_filename = sprintf('Results/Data/A_results_%del.csv', num_elements);
+    csvwrite(results_table_filename,results_matrix);
 end
+
 %%
-        % Create and save figure comparing FOM and ROM displacements
-        f = figure('units','centimeters','position',[3 3 9 7.0]);
-
-        % x-position (Head)
-        subplot(2,1,1);
-        hold on;
-        p1 = plot(timePlot, uHead_FOM(1,:), '--', 'DisplayName', 'FOM', 'LineWidth', 1.0);
-%         p2 = plot(timePlot, uHead_ROM(1,:), 'DisplayName', 'ROM', 'color', 'white');
-        p2 = plot(timePlot, uHead_ROM(1,:), 'DisplayName', 'ROM', 'LineWidth', 1.0);
-        p3 = plot(timePlot, uHead_PROM_3(1,:), '-.', 'DisplayName', 'PROM 3p', 'LineWidth', 1.0);
-        p4 = plot(timePlot, uHead_PROM_5(1,:), '-.', 'DisplayName', 'PROM 5p', 'LineWidth', 1.0);
-        p5 = plot(timePlot, uHead_PROM_8(1,:), '-.', 'DisplayName', 'PROM 8p', 'LineWidth', 1.0);
-        grid on;
-        xlabel('Time [s]');
-        % --- Left y-axis: raw cm
-        yyaxis left
-        ylTop = ylabel('Head x-position [cm]');
-        yt = yticks;
-        yl = ylim;
-
-        % --- Right y-axis: scaled to % of body length
-        yyaxis right
-        ax = gca; % get current axes
-        ylim(yl);
-        yticks(yt)
-        yticklabels(yt /(Lx*100)*100); % set tick labels correctly
-        ax.YColor = 'k';
-        ylTopRight = ylabel('\% of body length', 'color', 'k');
-
-        % --- Back to left for legend
-        yyaxis left
-        
-%         lgd = legend([p1,p3,p2,p4,p5,p6],{'FOM', 'ROM', '', 'PROM 3p', 'PROM 5p', 'PROM 8p'},'Location','northwest', 'NumColumns',2, 'interpreter', 'latex');
-        lgd = legend([p1,p2,p3,p4,p5],{'FOM', 'ROM',  'PROM 3p', 'PROM 5p', 'PROM 8p'},'Location','northwest', 'NumColumns',1, 'interpreter', 'latex');
-%       
-        %         lgd.Position(2) = lgd.Position(2) + 0.075; 
-%         lgd = legend('Location','northwest', 'interpreter', 'latex');
-        lgd.Position(2) = lgd.Position(2) + 0.08;
-    
-        % y-position (Tail)
-        subplot(2,1,2);
-        hold on;
-        plot(timePlot, uTail_FOM(2,:), '--', 'DisplayName', 'FOM', 'LineWidth', 1.0);
-        plot(timePlot, uTail_ROM(2,:), 'DisplayName', 'ROM', 'LineWidth', 1.0);
-        plot(timePlot, uTail_PROM_3(2,:), '-.', 'DisplayName', 'PROM 3p', 'LineWidth', 1.0);
-        plot(timePlot, uTail_PROM_5(2,:), '-.', 'DisplayName', 'PROM 5p', 'LineWidth', 1.0);
-        plot(timePlot, uTail_PROM_8(2,:), '-.', 'DisplayName', 'PROM 8p', 'LineWidth', 1.0);
-        grid on;
-        xlabel('Time [s]');
-        % --- Left y-axis: raw cm
-        yyaxis left
-        ylBottom = ylabel('Tail y-position [cm]');
-        yt = yticks;
-        yl = ylim;
-
-        % --- Right y-axis: scaled to % of body length
-        yyaxis right
-        ax = gca; % get current axes
-        ylim(yl);
-        yticks(yt)
-        yticklabels(yt /(Ly*100)*100); % set tick labels correctly
-        ax.YColor = 'k';
-        ylBottomRight = ylabel('\% of body thickness', 'color', 'k');
-        
-        % Align left y-labels (left axes)
-        if ylTop.Position(1) < ylBottom.Position(1)
-            set(ylBottom, 'Position', [ylTop.Position(1), ylBottom.Position(2), ylBottom.Position(3)]);
-        else
-            set(ylTop, 'Position', [ylBottom.Position(1), ylTop.Position(2), ylTop.Position(3)]);
-        end
-
-        % Align right y-labels (right axes)
-        if ylTopRight.Position(1) < ylBottomRight.Position(1)
-            set(ylTopRight, 'Position', [ylBottomRight.Position(1), ylTopRight.Position(2), ylTopRight.Position(3)]);
-        else
-            set(ylBottomRight, 'Position', [ylTopRight.Position(1), ylBottomRight.Position(2), ylBottomRight.Position(3)]);
-        end
-        
-        % add rectangle
-        annotation('textbox', [0.875 0.839 0.04 0.07],...
-            'BackgroundColor', 'none', ...
-            'EdgeColor', 'black',...
-            'LineWidth', 1.5)
-
+[uHead_sol, uTail_sol] = wrap_head_tail_results(uHead_FOM, uHead_ROM, ...
+    uHead_PROM_3, uHead_PROM_5, uHead_PROM_8, uTail_FOM, uTail_ROM, ...
+    uTail_PROM_3, uTail_PROM_5, uTail_PROM_8);
+fig = fig_head_tail_motion(uHead_sol, uTail_sol, timePlot, Lx, Ly, ...
+    [0.875 0.839 0.04 0.07]);
 
 %% RESULTS ANALYSIS AND PLOTS _____________________________________________
 
@@ -439,7 +300,9 @@ subplot(3,1,1);
 hold on;
 p1=plot(avgResults(:,1), avgResults(:,15), '--', 'DisplayName', 'FOM', 'LineWidth', 1.0);
 p2=plot(avgResults(:,1), avgResults(:,18), 'LineWidth', 1.0);
+colorIdx = get(gca, 'ColorOrderIndex');
 p3=plot(avgResults(:,1), avgResults(:,27), 'Color', 'white','LineWidth', 0.01);   % dummy line for legend alignment
+set(gca, 'ColorOrderIndex', colorIdx);
 p4=plot(avgResults(:,1), avgResults(:,21), '-.', 'DisplayName', 'PROM (3 param.)', 'LineWidth', 1.0);
 p5=plot(avgResults(:,1), avgResults(:,24), '-.', 'DisplayName', 'PROM (5 param.)', 'LineWidth', 1.0);
 p6=plot(avgResults(:,1), avgResults(:,27), '-.', 'DisplayName', 'PROM (8 param.)', 'LineWidth', 1.0);
@@ -486,8 +349,8 @@ annotation('textbox', [0.125 0.562 0.07 0.1], ...
 % Plot for computational time PROM only
 subplot(3,1,3);
 hold on;
-fill([avgResults(:,1); flipud(avgResults(:,1))], [zeros(size(avgResults(:,1))); flipud(avgResults(:,19))],[0.4940 0.1840 0.5560], 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Build PROM 3p'); % Fill for build
-fill([avgResults(:,1); flipud(avgResults(:,1))], [avgResults(:,19); flipud(avgResults(:,21))],[0.4940 0.1840 0.5560], 'FaceAlpha', 0.6, 'EdgeColor', 'none', 'DisplayName', 'Simulate  PROM 3p'); % Fill for simulate
+fill([avgResults(:,1); flipud(avgResults(:,1))], [zeros(size(avgResults(:,1))); flipud(avgResults(:,19))],[0.9290, 0.6940, 0.1250], 'FaceAlpha', 0.3, 'EdgeColor', 'none', 'DisplayName', 'Build PROM 3p'); % Fill for build
+fill([avgResults(:,1); flipud(avgResults(:,1))], [avgResults(:,19); flipud(avgResults(:,21))],[0.9290, 0.6940, 0.1250], 'FaceAlpha', 0.6, 'EdgeColor', 'none', 'DisplayName', 'Simulate  PROM 3p'); % Fill for simulate
 grid on
 xlim([1272 24822])
 xlabel('Number of finite elements');
@@ -533,7 +396,7 @@ hold on
 X = resultSummary(:, 1);            % nr. elements
 Y = resultSummary(:, 4);            % max vertical displacement
 values = (resultSummary(:, 5)-resultSummary(:, 3))./(...
-    resultSummary(:,3))*100;  % relative error 
+    resultSummary(:,3))*100;  % relative error
 
 % Number of grid points
 gridres = 500 ;
@@ -553,7 +416,7 @@ cb = colorbar('TickLabelInterpreter','latex');
 colormap jet
 shading interp
 
-% Draw crosses at measurment points
+% Draw crosses at measurement points
 plot(X, Y, 'kx', 'MarkerSize', 8, 'LineWidth', 1.0);
 
 % Draw zero line
@@ -565,7 +428,6 @@ zero_pos = (0 - cbar_limits(1)) / (cbar_limits(2) - cbar_limits(1));
 cbar_pos = cb.Position;
 y_zero = cbar_pos(2) + zero_pos * cbar_pos(4);
 annotation('line', [cbar_pos(1), cbar_pos(1) + cbar_pos(3)], [y_zero, y_zero], 'Color', 'k', 'LineWidth', 1.0);
-
 
 
 % Labels and appearancy
@@ -589,69 +451,7 @@ annotation('textbox', [0.29 0.733 0.05 0.08],...
 hold off
 
 fig_filename = 'Results/Figures/PDF/09_A_results_rel_error_forward.pdf';
-% exportgraphics(f, fig_filename, 'Resolution', 600);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%% ANIMATION ______________________________________________________________
-elementPlot = elements(:,1:4); 
-nel = size(elements,1);
-
-% top muscle
-topMuscle = zeros(nel,1);
-
-for el=1:nel
-    elementCenterY = (nodes(elements(el,1),2)+nodes(elements(el,2),2)+nodes(elements(el,3),2)+nodes(elements(el,4),2))/4;
-    elementCenterX = (nodes(elements(el,1),1)+nodes(elements(el,2),1)+nodes(elements(el,3),1)+nodes(elements(el,4),1))/4;
-    if elementCenterY>0.00 &&  elementCenterX < -Lx*propRigid && elementCenterX > -Lx*0.9
-        topMuscle(el) = 1;
-    end    
-end
-
-% bottom muscle
-bottomMuscle = zeros(nel,1);
-for el=1:nel
-    elementCenterY = (nodes(elements(el,1),2)+nodes(elements(el,2),2)+nodes(elements(el,3),2)+nodes(elements(el,4),2))/4;
-    elementCenterX = (nodes(elements(el,1),1)+nodes(elements(el,2),1)+nodes(elements(el,3),1)+nodes(elements(el,4),1))/4;
-    if elementCenterY<0.00 &&  elementCenterX < -Lx*propRigid && elementCenterX > -Lx*0.9
-        bottomMuscle(el) = 1;
-    end    
-
-end
-
-actuationValues = zeros(size(TI_NL_FOM.Solution.u,2),1);
-for t=1:size(TI_NL_FOM.Solution.u,2)
-    actuationValues(t) = 0;
-end
-
-actuationValues2 = zeros(size(TI_NL_FOM.Solution.u,2),1);
-for t=1:size(TI_NL_FOM.Solution.u,2)
-    actuationValues2(t) = 0;
-end
-sol = TI_NL_FOM.Solution.u(:,1:end);
-AnimateFieldonDeformedMeshActuation2Muscles(nodes, elementPlot,topMuscle,actuationValues,...
-    bottomMuscle,actuationValues2,sol, ...
-    'factor',1,'index',1:3,'filename','result_video','framerate',1/h)
+exportgraphics(f, fig_filename, 'Resolution', 600);
 
 
 

@@ -3,28 +3,6 @@
 %
 % Description: create a figure showing the muscle placement and the first
 % vibration mode (VM)
-% Synthax:
-% [Mesh, nodes, elements, nsetForBC] = create_mesh(filename, myElementConstructor, propRigid)
-%
-% Description: Creates a FE mesh in Matlab based on an Abaqus input input
-% file. Describes a set of nodes used for the boundary conditions (BC)
-%
-% INPUTS: 
-% (1) filename:             name of Abaqus input file              
-% (2) myElementConstructor: element constructor type (only tested with Tet4)
-% (3) propRigid:            proporion of the fish which is rigid (used for
-%                           the boundary conditions)
-%
-% OUTPUTS:   
-% (1) mesh:             mesh object
-% (2) nodes:            matrix containing the positions of the nodes
-% (3) elements:         matrix containing the nodes' ID of each element
-% (4) muscleBoudnaries: boundaries of the muscles, along the x axis
-% (5) esetBC:           binary vector of size n_elements, 1 (0): element (not) 
-%                       subject to boundary conditions (element set)
-%
-% Additional notes: this function is not written in the most generic way.
-% It purpose is to facilitate the creation of a mesh in our examples.
 %
 % Last modified: 16/03/2025, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
