@@ -400,7 +400,7 @@ function param = clip_infeasible_parameters(p,A,b)
             % only consider constraints containing a single parameter
             if length(find(A(constrIdx,:))) == 1
                 paramIdxToClip = find(A(constrIdx,:));
-                param(paramIdxToClip) = sign(A(constrIdx,paramIdxToClip))*b(constrIdx) - sign(A(constrIdx,paramIdxToClip))*0.05*b(constrIdx);
+                param(paramIdxToClip) = sign(A(constrIdx,paramIdxToClip))*b(constrIdx) - sign(A(constrIdx,paramIdxToClip))*0.025*b(constrIdx);
                 fprintf('Clipping  parameter %d to the value %d \n',paramIdxToClip,param(paramIdxToClip))
             end
         end
