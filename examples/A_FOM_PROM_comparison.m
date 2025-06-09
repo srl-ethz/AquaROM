@@ -432,7 +432,7 @@ annotation('line', [cbar_pos(1), cbar_pos(1) + cbar_pos(3)], [y_zero, y_zero], '
 
 % Labels and appearancy
 xlabel('Number of finite elements')
-ylabel('Tail maximal $y$-oscillation [cm]')
+ylabel('Tail $y$-oscillation amplitude [cm]')
 xlim([650,24822])
 ylim([0.0,2.6])
 % title('Relative error in $x$-position after $t=2$s', 'interpreter', 'latex')
