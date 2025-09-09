@@ -22,7 +22,7 @@ set(groot,'defaultAxesTickLabelInterpreter','latex');
 load('parameters.mat') 
 
 % specify and create FE mesh
-filename ='InputFiles/3d_rectangle_16009el';     % or 16009el, 8086
+filename ='InputFiles/3d_rectangle_8086el';     % or 16009el, 8086
 
 [MeshNominal, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
 [Lx, Ly, Lz] = mesh_dimensions_3D(nodes);
@@ -52,8 +52,8 @@ set(f1,'Units','centimeters');
 %% OPTIMIZATION PARAMETERS
 h = 0.02;
 tmax = 2.0;
-% kActu = 3.1*1e5;    % multiplicative factor for the actuation forces 
-kActu = 2.8*1e5;       % value for 16009 elements
+kActu = 3.1*1e5;    % multiplicative factor for the actuation forces (8086 elements)
+% kActu = 2.8*1e5;       % value for 16009 elements
 
 %% OPTIMISATION SO1 _______________________________________________________
 
@@ -300,7 +300,7 @@ legend([p1,p2,p3],'SO1','SO2','SO3', 'Location', 'southeast')
 hold off
 
 fig_title = sprintf('Results/Figures/SO_dist_evolution_%d_el.pdf', n_elements);
-exportgraphics(f_dist,fig_title,'Resolution',1200)
+% exportgraphics(f_dist,fig_title,'Resolution',1200)
 
 
 %% PLOT NORMALIZED SWIMMING DISTANCE FOR THE 3 EXPERIMENTS ________________
