@@ -287,11 +287,7 @@ exportgraphics(f_cost,fig_title,'Resolution',1200)
 f_dist = figure('units','centimeters','position',[3 3 9 6]);
 hold on
 p1 = plot(xEvo_1*100,'LineWidth',1);
-% plot(rebuildIdx_1, xEvo_1(rebuildIdx_1) * 100, 'x', ...
-%      'MarkerSize', 8, 'LineWidth', 1.5, 'Color', p1.Color);
 p2 = plot(xEvo_2*100,'--','LineWidth',1);
-% plot(rebuildIdx_2, xEvo_2(rebuildIdx_2) * 100, 'x', ...
-%      'MarkerSize', 8, 'LineWidth', 1.5, 'Color', p2.Color);
 p3 = plot(xEvo_3*100,'-.','LineWidth',1);
 grid on
 ylabel('Swimming distance [cm]')
@@ -309,14 +305,8 @@ fig_title = sprintf('Results/Figures/SO_dist_evolution_%d_el.pdf', n_elements);
 f_norm_dist = figure('units','centimeters','position',[3 3 9 6]);
 hold on
 p1 = plot(xEnergyEvo_1*100,'LineWidth',1);
-% plot(rebuildIdx_1+1, xEnergyEvo_1(rebuildIdx_1+1) * 100, 'x', ...
-%      'MarkerSize', 8, 'LineWidth', 1.0, 'Color', p1.Color);
 p2 = plot(xEnergyEvo_2*100,'--','LineWidth',1);
-% plot(rebuildIdx_2+1, xEnergyEvo_2(rebuildIdx_2+1) * 100, 'x', ...
-%      'MarkerSize', 8, 'LineWidth', 1.0, 'Color', p2.Color)
 p3 = plot(xEnergyEvo_3*100,'-.','LineWidth',1);
-% plot(rebuildIdx_3+1, xEnergyEvo_3(rebuildIdx_3+1) * 100, 'x', ...
-%      'MarkerSize', 8, 'LineWidth', 1.0, 'Color', p3.Color)
 grid on
 ylabel('Normalized swimming distance')
 xlabel('Iterations')
@@ -324,147 +314,4 @@ legend([p1,p2,p3], 'SO1','SO2','SO3', 'Location', 'northwest')
 hold off
 
 fig_title = sprintf('Results/Figures/SO_normalized_dist_evolution_%d_el.pdf', n_elements);
-exportgraphics(f_norm_dist,fig_title,'Resolution',1200)
-
-
-
-
-%% ------------------------------------------------------------------------
-
-
-
-
-
-
-
-
-
-
-%% SIMULATION/ANIMATION
-U_sim = U_3;
-xiStar_3=[-0.49;0.26;0.4;0.28;0.39;0.3;0.29;0.15];
-% Find dorsal nodes on nominal mesh
-[spineNodes, spineElements, spineElementWeights, nodeIdxPosInElements] = find_spine_TET4(elements,nodes);
-[~,matchedDorsalNodesIdx,dorsalNodesElementsVec,matchedDorsalNodesZPos] = ....
-            find_dorsal_nodes(elements, nodes, spineElements, nodeIdxPosInElements);
-
-dorsalNodesStructFromUser.matchedDorsalNodesIdx = matchedDorsalNodesIdx;
-dorsalNodesStructFromUser.dorsalNodesElementsVec = dorsalNodesElementsVec;
-dorsalNodesStructFromUser.matchedDorsalNodesZPos = matchedDorsalNodesZPos;
-
-% shape varied mesh
-df = U_sim*xiStar_3;                       % displacement fields introduced by defects
-ddf = [df(1:3:end) df(2:3:end) df(3:3:end)]; 
-nodes_defected = nodes + ddf;    % nominal + d ---> defected 
-svMesh = Mesh(nodes_defected);
-svMesh.create_elements_table(elements,myElementConstructor);
-for l=1:length(nsetBC)
-    svMesh.set_essential_boundary_condition([nsetBC{l}],1:3,0)   
-end
-
-
-% Build PROM
-[V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuLeft,actuRight] = ...
-                 build_PROM_3D(svMesh,nodes,elements,muscleBoundaries,U_sim,USEJULIA,VOLUME,FORMULATION,'dorsalNodes',dorsalNodesStructFromUser);
-
-
-             %%
-% Simulate PROM
-TI_NL_PROM = solve_EoMs_and_sensitivities(V, PROM_Assembly, tensors_PROM, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, 8.0); 
-
-%% PLOT RESULTS
-tmax=8.0;
-uTail = zeros(3,tmax/h);
-timePlot = linspace(0,tmax-h,tmax/h);
-x0Tail = min(nodes(:,1));
-for a=1:tmax/h
-    uTail(:,a) = V(tailProperties.tailNode*3-2:tailProperties.tailNode*3,:)*TI_NL_PROM.Solution.q(:,a);
-end
-
-figure
-subplot(2,1,1);
-plot(timePlot,x0Tail+uTail(1,:),'DisplayName','k=0')
-hold on
-xlabel('Time [s]')
-ylabel('x-position tail node')
-legend('Location','northwest')
-subplot(2,1,2);
-plot(timePlot,uTail(2,:))
-hold on
-xlabel('Time [s]')
-ylabel('y-position tail node')
-legend('Location','southwest')
-hold off
-
-%% ANIMATION
-
-elementPlot = elements(:,1:4); 
-nel = size(elements,1);
-% top muscle
-topMuscle = zeros(nel,1);
-
-for el=1:nel
-    elementCenterY = (nodes(elements(el,1),2)+nodes(elements(el,2),2)+nodes(elements(el,3),2)+nodes(elements(el,4),2))/4;
-    elementCenterX = (nodes(elements(el,1),1)+nodes(elements(el,2),1)+nodes(elements(el,3),1)+nodes(elements(el,4),1))/4;
-    if elementCenterY>0.00 &&  elementCenterX < -Lx*propRigid && elementCenterX > -Lx*0.9
-        topMuscle(el) = 1;
-    end    
-end
-
-% bottom muscle
-bottomMuscle = zeros(nel,1);
-for el=1:nel
-    elementCenterY = (nodes(elements(el,1),2)+nodes(elements(el,2),2)+nodes(elements(el,3),2)+nodes(elements(el,4),2))/4;
-    elementCenterX = (nodes(elements(el,1),1)+nodes(elements(el,2),1)+nodes(elements(el,3),1)+nodes(elements(el,4),1))/4;
-    if elementCenterY<0.00 &&  elementCenterX < -Lx*propRigid && elementCenterX > -Lx*0.9
-        bottomMuscle(el) = 1;
-    end    
-
-end
-
-actuationValues = zeros(size(TI_NL_PROM.Solution.q,2),1);
-for t=1:size(TI_NL_PROM.Solution.q,2)
-    actuationValues(t) = 0;
-end
-
-actuationValues2 = zeros(size(TI_NL_PROM.Solution.q,2),1);
-for t=1:size(TI_NL_PROM.Solution.q,2)
-    actuationValues2(t) = 0;
-end
-
-
-sol = V*TI_NL_PROM.Solution.q(:,1:end);
-AnimateFieldonDeformedMeshActuation2Muscles(nodes_defected, elementPlot,topMuscle,actuationValues,...
-    bottomMuscle,actuationValues2,sol, ...
-    'factor',1,'index',1:3,'filename','result_video','framerate',1/h)
-
-
-%% OTHER/PREVIOUS PLOTS ___________________________________________________
-
-
-
-
-
-
-
-
-%% PLOT PARAMETERS' EVOLUTION OVER ITERATIONS _____________________________
-figure('Position',[100,100,600,200])
-set(groot,'defaulttextinterpreter','latex');
-set(groot,'defaultLegendInterpreter','latex');
-set(groot,'defaultAxesTickLabelInterpreter','latex'); 
-subplot(1,3,1)
-plot(xiEvo_3(5,:));
-ylabel('$$\xi_1$$','Interpreter','latex')
-xlabel('Iterations')
-grid on
-subplot(1,3,2)
-plot(xiEvo(2,:));
-ylabel('$$\xi_2$$','Interpreter','latex')
-xlabel('Iterations')
-grid on
-subplot(1,3,3)
-plot(xiEvo(3,:));
-ylabel('$$\xi_3$$','Interpreter','latex')
-xlabel('Iterations')
-grid on
+% exportgraphics(f_norm_dist,fig_title,'Resolution',1200)
