@@ -115,7 +115,7 @@ function [FOM_Assembly,tailProperties,spineProperties,dragProperties,actuLeft,ac
     spineProperties.normalisationFactors = normalisationFactors;
      
     % drag force (reduced order)
-    [~,~,skinElements, skinElementFaces] = getSkin3D(elements);
+    [~,~,skinElements, skinElementFaces] = getSkin3D_ext(elements);
     headNode = find_node(0,0,0,nodes);
     headxDOF = 3*headNode-2;
     vecHeadX = zeros(1,MeshNominal.nDOFs);

@@ -35,18 +35,25 @@
 % (3) LEvo:         evolution of the cost function values
 % (4) LwoBEvo:      evolution of the cost function values without barrier
 %                   function part
-%     
+% (5) xEvo:         evolution of the swimming distance
+% (6) xEnergyEvo:   evolution of the swimming distance, normalized by the
+%                   size of the muscles, i.e., normalized by the amount of 
+%                   available energy
+% (7) muscleVolEvo: evolution of the total muscle volume
+% (8) nIt:          number of iterations
+% (9) rebuildIdx:   indexes of the iterations at which a model re-build was
+%                   performed (PROM build)
 %
-% Last modified: 16/01/2025, Mathieu Dubied, ETH Zurich
+% Last modified: 17/05/2025, Mathieu Dubied, ETH Zurich
 
-function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructor,nset,nodes,elements,muscleBoundaries,kActu,U,h,tmax,A,b,varargin)
+function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ... 
+    nIt, rebuildIdx] = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
+                             muscleBoundaries,kActu,U,h,tmax,A,b,varargin)
 
     % parse input
     [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,...
-        rebuildThreshold,FORMULATION,VOLUME,USEJULIA] = parse_inputs(varargin{:});
-    rebuildThresholdSwitch = 0;
-    
-    % NOMINAL SOLUTION ____________________________________________________
+        rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA] = parse_inputs(varargin{:});
+
     fprintf('**************************************\n')
     fprintf('Solving for the nominal structure...\n')
     fprintf('**************************************\n')
@@ -54,6 +61,7 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
     xi_k = zeros(size(U,2),1);
     xiRebuild_k = zeros(size(U,2),1);
     xiEvo = xi_k;
+    rebuildIdx = [];
 
     nParam = length(xi_k);
     gradientWeights = ones(1,nParam);
@@ -79,12 +87,16 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
     dorsalNodesStructFromUser.dorsalNodesElementsVec = spineProperties.dorsalNodesElementVec;
     dorsalNodesStructFromUser.matchedDorsalNodesZPos = spineProperties.zPos;
     
-
+    % store which elements are part of the muscles an compute muscle volume 
+    % (for results about energy normalization xEnergyEvo)
+    [muscleElements, muscleVol] = get_muscle_elements_and_vol(MeshNominal,...
+                                        nodes, elements, muscleBoundaries);
+    muscleVolEvo = muscleVol;
+    
     % Solve EoMs
     tic 
     fprintf('____________________\n')
     fprintf('Solving EoMs...\n') 
-    % TI_NL_PROM = solve_EoMs(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,h,tmax);      
     TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax);          
     toc
     nIt = 1;
@@ -98,38 +110,21 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
 
     figure
     subplot(2,1,1);
-    plot(timePlot,x0Tail+uTail(1,:),'DisplayName','k=0')
+    plot(timePlot,(x0Tail+uTail(1,:))*100,'DisplayName','k=0')
     hold on
     xlabel('Time [s]')
-    ylabel('x-position tail node')
+    ylabel('Tail x-position [cm]')
     legend('Location','northwest')
     subplot(2,1,2);
-    plot(timePlot,uTail(2,:),'DisplayName','k=0')
+    plot(timePlot,uTail(2,:)*100,'DisplayName','k=0')
     hold on
     xlabel('Time [s]')
-    ylabel('y-position tail node')
+    ylabel('Tail y-position [cm]')
     legend('Location','southwest')
     drawnow
-
-
-    % Solve sensitivity equation 
-    % tic
-    % fprintf('____________________\n')
-    % fprintf('Solving sensitivity...\n') 
-    % TI_sens = solve_sensitivities(V,xi_k,PROM_Assembly, ...
-    %    tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom, ...
-    %    TI_NL_PROM.Solution.q,TI_NL_PROM.Solution.qd,TI_NL_PROM.Solution.qdd, ...
-    %    h,tmax);
-    % toc
     
     % Retrieving solutions    
     eta = TI_NL_PROM.Solution.q;
-    % etad = TI_NL_PROM.Solution.qd;
-    % etadd = TI_NL_PROM.Solution.qdd;
-    % S = TI_sens.Solution.q;
-    % Sd = TI_sens.Solution.qd;
-    % Sdd = TI_sens.Solution.qdd;
-
     S = TI_NL_PROM.Solution.s;
     eta_0k = TI_NL_PROM.Solution.q;
     eta_k = eta;
@@ -138,10 +133,13 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
     fprintf('____________________\n')
     fprintf('Computing cost function...\n') 
     N = size(eta,2);
-    [L,LwoB] = reduced_cost_function_w_constraints_TET4(N,eta_k,xi_k,A,b,barrierParam,V);  
+    [L,LwoB] = reduced_cost_function_w_constraints_TET4(xi_k,eta_k,V,A,b,barrierParam,wSize);  
+   
     LEvo = L;
     LwoBEvo = LwoB;
     nablaEvo = zeros(size(A,2),1);
+    xEvo = uTail(1,end);
+    xEnergyEvo = xEvo/muscleVol;
 
     lastRebuild = 0;
 
@@ -153,6 +151,7 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
         % possible rebuilding of a PROM
         if check_cond_rebuild(k,lastRebuild,nRebuild,xiRebuild_k,rebuildThreshold,maxIteration)
             lastRebuild = k;
+            rebuildIdx = [rebuildIdx, lastRebuild]; 
          
             % update defected mesh nodes
             df = U*xi_k;                       % displacement fields introduced by defects
@@ -167,26 +166,12 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
             % build PROM
             [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom] = ...
                  build_PROM_3D(svMesh,nodes_defected,elements,muscleBoundaries,U,USEJULIA,VOLUME,FORMULATION,'dorsalNodes',dorsalNodesStructFromUser);
-
-            % Lx = abs(max(nodes(:,1))-min(nodes(:,1)));  % horizontal length of airfoil
-            % Ly = abs(max(nodes(:,2))-min(nodes(:,2)));  % vertical length of airfoil
-            % Lz = abs(max(nodes(:,3))-min(nodes(:,3)));  % vertical length of airfoil
-            % f1 = figure('units','centimeters','position',[3 3 15 7],'name','Shape-varied mesh');
-            % elementPlot = elements(:,1:4); hold on 
-            % % PlotMesh(nodes, elementPlot, 0); 
-            % v1 = reshape(U*xi_k, 3, []).';
-            % S = 1;
-            % hf=PlotFieldonDeformedMesh(nodes, elementPlot, v1, 'factor', S);
-            % L = [Lx,Ly,Lz];
-            % O = [-Lx,-Ly/2,-Lz/2];
-            % plotcube(L,O,.05,[0 0 0]);
-            % axis equal; grid on; box on; drawnow
-            % set(f1,'PaperUnits','centimeters');
-            % set(f1,'PaperPositionMode','auto');
-            % % set(f1,'PaperSize',[10 3.5]); % Canvas Size
-            % set(f1,'Units','centimeters');
                                                          
             xiRebuild_k = zeros(size(U,2),1);   % reset local xi to 0 as we rebuild the ROM
+            
+            % compute muscle volume
+            muscleVol = compute_muscle_vol(svMesh, muscleElements);
+            muscleVolEvo = [muscleVolEvo, muscleVol];
               
             % solve EoMs to get updated nominal solutions eta and dot{eta} (on the deformed mesh
             tic 
@@ -207,28 +192,15 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
                 uTail(:,a) = V(tailProperties.tailNode*3-2:tailProperties.tailNode*3,:)*TI_NL_PROM.Solution.q(:,a);
             end 
             subplot(2,1,1);
-            plot(timePlot,x0Tail+uTail(1,:),'DisplayName',strcat('k=',num2str(k)))
+            plot(timePlot,(x0Tail+uTail(1,:))*100,'DisplayName',strcat('k=',num2str(k)))
             legend
             drawnow
      
             subplot(2,1,2);
-            plot(timePlot,uTail(2,:),'DisplayName',strcat('k=',num2str(k)))
+            plot(timePlot,uTail(2,:)*100,'DisplayName',strcat('k=',num2str(k)))
             legend
             drawnow
             
-            % solve sensitivity equation 
-            % tic
-            % fprintf('____________________\n')
-            % fprintf('Solving sensitivity...\n') 
-            % TI_sens = solve_sensitivities(V,xiRebuild_k,PROM_Assembly, ...
-            %    tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom, ...
-            %    TI_NL_PROM.Solution.q,TI_NL_PROM.Solution.qd,TI_NL_PROM.Solution.qdd, ...
-            %    h,tmax);
-            % toc 
-            % 
-            % S = TI_sens.Solution.q;
-            % Sd = TI_sens.Solution.qd;
-            % Sdd = TI_sens.Solution.qdd;
         else
             % approximate new solution under new xi, using sensitivity
             fprintf('____________________\n')
@@ -236,49 +208,34 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
             if size(xi_k,1)>1
                 S=tensor(S);
                 eta_k = eta_0k + double(ttv(S,xiRebuild_k,2));
-                
-%                 uTail = zeros(3,tmax/h);
-%                 for a=1:tmax/h
-%                     uTail(:,a) = V(tailProperties.tailNode*3-2:tailProperties.tailNode*3,:)*eta_k(:,a);
-%                 end 
-%                 subplot(2,1,1);
-%                 plot(timePlot,x0Tail+uTail(1,:),'DisplayName',strcat('k=',num2str(k)))
-%                 legend
-%                 drawnow
-% 
-%                 subplot(2,1,2);
-%                 plot(timePlot,uTail(2,:),'DisplayName',strcat('k=',num2str(k)))
-%                 legend
-%                 drawnow
-
             else
                 eta_k = eta_0k + S*xiRebuild_k;
             end
-            
+
+            for a=1:tmax/h
+                uTail(:,a) = V(tailProperties.tailNode*3-2:tailProperties.tailNode*3,:)*eta_k(:,a);
+            end  
         end 
 
         % compute cost function and its gradient
         fprintf('____________________\n')
         fprintf('Computing cost function and its gradient...\n')   
-        nablaLr = gradient_cost_function_w_constraints_TET4(xi_k,eta_k,S,A,b,barrierParam,V);
-        [L,LwoB] = reduced_cost_function_w_constraints_TET4(N,eta_k,xi_k,A,b,barrierParam,V);
+        nablaLr = gradient_cost_function_w_constraints_TET4(xi_k,eta_k,S,V,A,b,barrierParam,wSize);
+        [L,LwoB] = reduced_cost_function_w_constraints_TET4(xi_k,eta_k,V,A,b,barrierParam,wSize);
 
         LEvo = [LEvo, L];
         LwoBEvo = [LwoBEvo, LwoB];
         nablaEvo = [nablaEvo,nablaLr];
-
+        xEvo = [xEvo,uTail(1,end)];
+        xEnergyEvo = [xEnergyEvo, uTail(1,end)/muscleVol];
+        
         % update optimal parameter
         fprintf('____________________\n')
         fprintf('Updating optimal parameter...\n') 
         updatedGradientWeights = adapt_learning_rate(nablaEvo,gradientWeights);
 
         if ~all(gradientWeights == updatedGradientWeights) 
-%             if  rebuildThresholdSwitch ==0
-% %                 rebuildThreshold = rebuildThreshold/2;
-% %                 rebuildThresholdSwitch = 1;
-%             end
-            gradientWeights = updatedGradientWeights;
-            
+            gradientWeights = updatedGradientWeights;      
         end
 
         xi_k = xi_k - gStepSize*diag(gradientWeights)*nablaLr
@@ -337,7 +294,7 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,nIt] = optimise_shape_3D(myElementConstructo
 end
 
 % Parse input _____________________________________________________________
-function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,rebuildThreshold,FORMULATION,VOLUME,USEJULIA] = parse_inputs(varargin)
+function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA] = parse_inputs(varargin)
     defaultMaxIteration = 50;
     defaultConvCrit = 0.001;
     defaultConvCritCost = 0.1;
@@ -345,6 +302,7 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,reb
     defaultGStepSize = 0.1;
     defaultNRebuild = 10;
     defaultRebuildThreshold = 0.2;
+    defaultWSize = 5;
     defaultFORMULATION = 'N1';
     defaultVOLUME = 1;
     defaultUSEJULIA = 0; 
@@ -363,6 +321,8 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,reb
                     {'numeric'},{'nonempty','positive'}) );
     addParameter(p,'rebuildThreshold',defaultRebuildThreshold,@(x)validateattributes(x, ...
                     {'numeric'},{'nonempty','positive'}) );
+    addParameter(p,'wSize',defaultWSize,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
     addParameter(p,'FORMULATION',defaultFORMULATION,@(x)validateattributes(x, ...
                     {'char'},{'nonempty'}))
     addParameter(p,'VOLUME',defaultVOLUME,@(x)validateattributes(x, ...
@@ -379,6 +339,7 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,reb
     gStepSize = p.Results.gStepSize;
     nRebuild = p.Results.nRebuild;
     rebuildThreshold = p.Results.rebuildThreshold;
+    wSize = p.Results.wSize;
     FORMULATION = p.Results.FORMULATION;
     VOLUME = p.Results.VOLUME;
     USEJULIA = p.Results.USEJULIA;
@@ -439,7 +400,7 @@ function param = clip_infeasible_parameters(p,A,b)
             % only consider constraints containing a single parameter
             if length(find(A(constrIdx,:))) == 1
                 paramIdxToClip = find(A(constrIdx,:));
-                param(paramIdxToClip) = sign(A(constrIdx,paramIdxToClip))*b(constrIdx) - sign(A(constrIdx,paramIdxToClip))*0.05*b(constrIdx);
+                param(paramIdxToClip) = sign(A(constrIdx,paramIdxToClip))*b(constrIdx) - sign(A(constrIdx,paramIdxToClip))*0.025*b(constrIdx);
                 fprintf('Clipping  parameter %d to the value %d \n',paramIdxToClip,param(paramIdxToClip))
             end
         end
