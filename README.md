@@ -40,7 +40,7 @@ If required, an error message will indicate this.
 - Mathematica is used to obtain analytical tensors describing the hydrodynamic drag force, as functions. The Mathematica code does not need to be re-run as the tensors are stored as Matlab functions in `src/Hydrodynamics/3D/TET4D4-tensors`.
 
 ## Code description
-The examples presented in the paper are gathered in the folder `examples`, and in particular:
+To run the code, start by running `startup.m`. The examples presented in the paper are gathered in the folder `examples`, and in particular:
 - `A_FOM_PROM_comparison.m`: compares the FOM to the (P)ROMs (Section 6.1 of the paper).
 - `B_shape_optimisation.m`: optimizes the shape of the fish for multiple sets of search parameters (Section 6.2 of the paper).
 
