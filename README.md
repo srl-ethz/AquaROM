@@ -42,6 +42,7 @@ If required, an error message will indicate this.
 ## Code description
 To run the code, start by running `startup.m`. The examples presented in the paper are gathered in the folder `examples`, and in particular:
 - `A_FOM_PROM_comparison.m`: compares the FOM to the (P)ROMs (Section 6.1 of the paper).
+- `A_FOM_PROM_comparison_appendix.m`: adds some results to the previous script (Appendix XY of the paper). 
 - `B_shape_optimisation.m`: optimizes the shape of the fish for multiple sets of search parameters (Section 6.2 of the paper).
 
 The algorithm and its components are implemented in the folder `src`, with the main file being `src/Optimization
