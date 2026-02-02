@@ -147,7 +147,6 @@ colNames = {'nEl','y-oscillation','rel. error main [%]',' rel. error VM2 MD1 [%]
 T = array2table(tab_VM2_MD1, 'VariableNames', colNames)
 
 %%  APPENDIX C.1 - ROB SELECTION - FIGURE 2ND VIBRATION MODE ______________                                                  
-% specify and create FE mesh (4270, 8086, 16009, 24822)
 num_elements_fig = 8086;
 filename = strcat('InputFiles/3d_rectangle_', num2str(num_elements_fig), 'el');
 [Mesh_ROM, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
@@ -158,8 +157,8 @@ for l=1:length(nsetBC)
 end  
 
 % FIGURE IN APPENDIX of the paper: 2nd VM
-f_A1 = fig_muscle_placement_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC);
-fig_filename = sprintf('Setup/Figures/06_A_muscles_placement_VM_%del.pdf', Mesh_ROM.nElements);
-exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
+f = fig_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC, 2);
+fig_filename = sprintf('Setup/Figures/Appendix/VM_2_%del.pdf', Mesh_ROM.nElements);
+exportgraphics(f, fig_filename, 'Resolution', 1400);
 
 
