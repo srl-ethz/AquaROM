@@ -28,7 +28,7 @@ for l=1:length(nsetBC)
 end  
 
 % figure highlighting the spine elements
-f_spine = fig_spixne(elements, nodes, 'cyan', 'r', [1 2 16 8]);
+f_spine = fig_spine(elements, nodes, 'cyan', 'r', [1 2 16 8]);
 
 % FIGURE 6 of the paper: muscle placement and 1st VM
 f_A1 = fig_muscle_placement_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC);

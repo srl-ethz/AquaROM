@@ -9,6 +9,8 @@
 % (4) muscleBoudnaries: boundaries of the muscles, along the x axis
 % (5) USEJULIA:     use of JULIA (1) for the computation of internal forces
 %                   tensors 
+% (6) n_VMs:        [Optional] number of vibration modes (VMs) to include
+% (7) MDs_flag:     [Optional] include (1) or not (0) the modal derivatives
 %
 % OUTPUTS:
 % (1) V:                    ROB    
@@ -24,12 +26,21 @@
 % (8) actuRight:            vectors and matrices related to the actuation
 %                           muscle on the right (y<0)
 %
-% Last modified: 14/01/2024, Mathieu Dubied, ETH Zürich
+% Last modified: 01/02/2026, Mathieu Dubied, ETH Zürich
 
 function [V,ROM_Assembly,tensors_ROM,tailProperties,spineProperties,dragProperties,actuLeft,actuRight] = ...
-    build_ROM_3D(MeshNominal,nodes,elements,muscleBoundaries,USEJULIA)
+    build_ROM_3D(MeshNominal,nodes,elements,muscleBoundaries,USEJULIA,n_VMs, MDs_flag)
 
     startROMBuilding = tic;
+    
+    % Default values for optional inputs __________________________________
+    if nargin < 6 || isempty(n_VMs)
+        n_VMs = 1;
+    end
+
+    if nargin < 7 || isempty(MDs_flag)
+        MDs_flag = 1;
+    end
     
     % 2D or 3D? ___________________________________________________________
     fishDim = size(nodes,2);
@@ -54,7 +65,6 @@ function [V,ROM_Assembly,tensors_ROM,tailProperties,spineProperties,dragProperti
     % ROB _________________________________________________________________
     
     % vibration modes
-    n_VMs = 1;
     Kc = NominalAssembly.constrain_matrix(Kn);
     Mc = NominalAssembly.constrain_matrix(Mn);
     [VMn,om] = eigs(Kc, Mc, n_VMs, 'SM');
@@ -70,8 +80,9 @@ function [V,ROM_Assembly,tensors_ROM,tailProperties,spineProperties,dragProperti
     end
 
     % modal derivatives
-    [MDn, MDname] = modal_derivatives(NominalAssembly, elements, VMn);
-
+    if MDs_flag == 1
+        [MDn, MDname] = modal_derivatives(NominalAssembly, elements, VMn);
+    end
     
     % ROB formulation
     mSingle = [1 0 0];    % horizontal displacement, rigid body mode
@@ -79,7 +90,11 @@ function [V,ROM_Assembly,tensors_ROM,tailProperties,spineProperties,dragProperti
 %     mSingle = [0 1 0];    % vertical displacement, rigid body mode
 %     m2 = repmat(mSingle,1,nNodes)';
     
-    V  = [m1,VMn MDn];
+    if MDs_flag == 1
+        V  = [m1,VMn MDn];
+    else
+        V = [m1, VMn];
+    end
     V  = orth(V);
     
 
