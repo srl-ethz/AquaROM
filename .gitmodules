@@ -1,0 +1,3 @@
+[submodule "YetAnotherFEcode"]
+	path = YetAnotherFEcode
+	url = https://github.com/mdubied/YetAnotherFEcode.git
