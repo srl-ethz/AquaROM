@@ -29,25 +29,23 @@
 % (18) gStepSize:   step size used in the gradient descent algorithm
 % (19) nRebuild:    number of step between each re-build of a PROM
 %
-% OUTPUTS:
-% (1) xiStar:       optimal shape parameter(s) (scalar or vector)
-% (2) xiEvo:        evolution of the optimal shape parameter(s)
-% (3) LEvo:         evolution of the cost function values
-% (4) LwoBEvo:      evolution of the cost function values without barrier
+% OUTPUTS: out, a struct with the following fields:
+% (1) exitMsg       exit message with reasons for convergence
+% (2) xiStar:       optimal shape parameter(s) (scalar or vector)
+% (3) xiEvo:        evolution of the optimal shape parameter(s)
+% (4) LEvo:         evolution of the cost function values
+% (5) LwoBEvo:      evolution of the cost function values without barrier
 %                   function part
-% (5) xEvo:         evolution of the swimming distance
-% (6) xEnergyEvo:   evolution of the swimming distance, normalized by the
-%                   size of the muscles, i.e., normalized by the amount of 
-%                   available energy
-% (7) muscleVolEvo: evolution of the total muscle volume
+% (6) xEvo:         evolution of the swimming distance
+% (7) nablaEvo      evolution of the gradient (no weighting)
+% (8) nablaWEvo     evoluation of the gradient (weighted)
 % (8) nIt:          number of iterations
 % (9) rebuildIdx:   indexes of the iterations at which a model re-build was
 %                   performed (PROM build)
 %
-% Last modified: 17/05/2025, Mathieu Dubied, ETH Zurich
+% Last modified: 04/02/2026, Mathieu Dubied, ETH Zurich
 
-function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ... 
-    nIt, rebuildIdx] = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
+function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
                              muscleBoundaries,kActu,U,h,tmax,A,b,varargin)
 
     % parse input
@@ -86,13 +84,7 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ...
     dorsalNodesStructFromUser.matchedDorsalNodesIdx = spineProperties.dorsalNodeIdx;
     dorsalNodesStructFromUser.dorsalNodesElementsVec = spineProperties.dorsalNodesElementVec;
     dorsalNodesStructFromUser.matchedDorsalNodesZPos = spineProperties.zPos;
-    
-    % store which elements are part of the muscles an compute muscle volume 
-    % (for results about energy normalization xEnergyEvo)
-    [muscleElements, muscleVol] = get_muscle_elements_and_vol(MeshNominal,...
-                                        nodes, elements, muscleBoundaries);
-    muscleVolEvo = muscleVol;
-    
+       
     % Solve EoMs
     tic 
     fprintf('____________________\n')
@@ -138,8 +130,8 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ...
     LEvo = L;
     LwoBEvo = LwoB;
     nablaEvo = zeros(size(A,2),1);
+    nablaWEvo = zeros(size(A,2),1);
     xEvo = uTail(1,end);
-    xEnergyEvo = xEvo/muscleVol;
 
     lastRebuild = 0;
 
@@ -168,11 +160,7 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ...
                  build_PROM_3D(svMesh,nodes_defected,elements,muscleBoundaries,U,USEJULIA,VOLUME,FORMULATION,'dorsalNodes',dorsalNodesStructFromUser);
                                                          
             xiRebuild_k = zeros(size(U,2),1);   % reset local xi to 0 as we rebuild the ROM
-            
-            % compute muscle volume
-            muscleVol = compute_muscle_vol(svMesh, muscleElements);
-            muscleVolEvo = [muscleVolEvo, muscleVol];
-              
+                        
             % solve EoMs to get updated nominal solutions eta and dot{eta} (on the deformed mesh
             tic 
             fprintf('____________________\n')
@@ -227,7 +215,6 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ...
         LwoBEvo = [LwoBEvo, LwoB];
         nablaEvo = [nablaEvo,nablaLr];
         xEvo = [xEvo,uTail(1,end)];
-        xEnergyEvo = [xEnergyEvo, uTail(1,end)/muscleVol];
         
         % update optimal parameter
         fprintf('____________________\n')
@@ -240,6 +227,8 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ...
 
         xi_k = xi_k - gStepSize*diag(gradientWeights)*nablaLr
         xiRebuild_k = xiRebuild_k - gStepSize*diag(gradientWeights)*nablaLr;
+        
+        nablaWEvo = [nablaWEvo, diag(gradientWeights)*nablaLr];
 
         xi_k_clipped = clip_infeasible_parameters(xi_k,A,b);
         if ~all(xi_k_clipped == xi_k)
@@ -264,32 +253,36 @@ function [xiStar,xiEvo,LEvo,LwoBEvo,xEvo,xEnergyEvo, muscleVolEvo, ...
         % possible exit conditions
         if size(xi_k,1) >1
             if norm(xiEvo(:,end)-xiEvo(:,end-1))<convCrit
-                fprintf('Convergence criterion of %.3f (parameters) fulfilled\n',convCrit)
+                exitMsg  = sprintf('Convergence criterion of %.3f (parameters) fulfilled\n',convCrit);
                 break
             elseif length(LEvo)>7
                 if var(LEvo(end-6:end)) < convCritCost
-                    fprintf('Convergence criterion of %.3f (cost) fulfilled\n',convCritCost)
+                    exitMsg  = sprintf('Convergence criterion of %.3f (cost) fulfilled\n',convCritCost);
                     break
                 end
             end
         else
             if norm(xiEvo(end)-xiEvo(end-1))<convCrit
-                fprintf('Convergence criterion of %.3f(parameters) fulfilled\n',convCrit)
+                exitMsg = fprintf('Convergence criterion of %.3f(parameters) fulfilled\n',convCrit);
                 break
             elseif length(LEvo)>7
                 if var(LEvo(end-6:end)) < convCritCost
-                    fprintf('Convergence criterion of %.3f (cost) fulfilled\n',convCritCost)
+                    exitMsg = sprintf('Convergence criterion of %.3f (cost) fulfilled\n',convCritCost);
                     break
                 end
             end
         end
 
         if k == maxIteration
-            fprintf('Maximum number of %d iterations reached\n',maxIteration)
+            exitMsg = sprintf('Maximum number of %d iterations reached\n',maxIteration);
+            
         end
     end
     
     xiStar = xi_k;
+    
+    out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo,nablaEvo, ...
+        nablaWEvo, nIt,rebuildIdx);
 
 end
 
@@ -405,5 +398,25 @@ function param = clip_infeasible_parameters(p,A,b)
             end
         end
     end
- end
+end
+ 
+% Wrap output _____________________________________________________________
+function out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo, ...
+    nablaEvo,nablaWEvo,nIt,rebuildIdx)
+
+    out = struct();
+    
+    out.exitMsg     = exitMsg;
+    out.xiStar      = xiStar;
+    out.xiEvo       = xiEvo;
+    out.LEvo        = LEvo;
+    out.LwoBEvo     = LwoBEvo;
+    out.xEvo        = xEvo;
+    out.nablaEvo    = nablaEvo;
+    out.nablaWEvo   = nablaWEvo;
+    out.nIt         = nIt;
+    out.rebuildIdx  = rebuildIdx;
+    
+    fprintf('%s\n', exitMsg);
+end
 
