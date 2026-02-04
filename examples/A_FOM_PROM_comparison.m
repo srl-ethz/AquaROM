@@ -4,7 +4,7 @@
 % Description: Accuracy and computational speed comparison between the FOM
 % and the (P)ROM formulations.
 %
-% Last modified: 08/06/2025, Mathieu Dubied, ETH Zurich
+% Last modified: 03/02/2026, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
 clear; 
 close all; 
@@ -39,13 +39,29 @@ exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
 %% ITERATIVE TESTING OF MULTIPLE CASES ____________________________________
 
 % Vector of element counts
-elements_vec = [1272, 4270, 8086, 16009, 24822]; % Number of elements for each input file
+elements_vec = [4270, 8086]; % Number of elements for each input file 1272, 4270, 8086,16009,
 kActu_values = {[5.5, 4.9, 4.2, 3.4, 2.5, 1.5, 0.5]*1e5, ...
                 [4.2, 3.6, 3.0, 2.4, 1.8, 1.2, 0.6]*1e5 ...
                 [3.1, 2.6, 2.1, 1.6, 1.1, 0.6, 0.1]*1e5, ...
-                [2.9, 2.5, 2.0, 1.6, 1.1, 0.6, 0.1 ]*1e5, ...
+                [2.9, 2.5, 2.0, 1.6, 1.1, 0.6, 0.1 ]*1e5, ...s
                 [2.25, 2.0, 1.7, 1.3, 1.0, 0.7, 0.3]*1e5
                 };
+            
+kActu_values = {
+                [15.0, 12.5, 10, 7.5, 5, 2.5, 1.0, 0.5]*1e4, ... 
+                [12, 10.1, 8.3, 6.5, 4.6, 2.7, 1.0, 0.1]*1e4, ...
+                [10, 8.9, 7.8, 6.7, 5.6, 4.5, 3.4, 2.3]*1e4, ...
+                [8.3, 7.4, 6.5, 5.6, 4.7, 3.8, 2.9, 2.0]*1e4, ...
+%                 [6.3, 0.67, 0.57, 0.43, 0.33, 0.23, 0.10]*1e4
+                };
+            
+kActu_values = {
+                [10.0, 8, 5]*1e4, ... 
+                [8, 5, 3]*1e4, ...
+%                 [8.3, 7.4, 6.5, 5.6, 4.7, 3.8, 2.9, 2.0]*1e4, ...
+%                 [6.3, 0.67, 0.57, 0.43, 0.33, 0.23, 0.10]*1e4
+                };
+
             
 % Set simulation parameters
 h = 0.02;
@@ -104,6 +120,7 @@ for elem_idx = 1:length(elements_vec)
         TI_NL_FOM = solve_EoMs_FOM(Assembly, elements, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax);
         timeFOMSolve = toc(tStartFOMSolve);
         timeFOM = toc(tStartFOM);
+        printf('Time for FOM: %.2f\n', timeFOM/60)
            
         % ROM Simulation __________________________________
         tStartROM = tic;
@@ -115,6 +132,7 @@ for elem_idx = 1:length(elements_vec)
         TI_NL_ROM = solve_EoMs(V, ROM_Assembly, tensors_ROM, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax);
         timeROMSolve = toc(tStartROMSolve);
         timeROM = toc(tStartROM);
+        printf('Time for ROM: %.2f\n', timeROM/60)
         
         % PROM Simulation, 3 parameters ___________________
         tStartPROM_3 = tic;
@@ -127,6 +145,7 @@ for elem_idx = 1:length(elements_vec)
         TI_NL_PROM_3 = solve_EoMs_and_sensitivities(V_3, PROM_Assembly, tensors_PROM, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax); 
         timePROMSolve_3 = toc(tStartPROMSolve_3);
         timePROM_3 = toc(tStartPROM_3);
+        printf('Time for PROM 3p: %.2f\n', timePROM_3/60)
         
         % PROM Simulation, 5 parameters ___________________
         tStartPROM_5 = tic;
@@ -139,6 +158,7 @@ for elem_idx = 1:length(elements_vec)
         TI_NL_PROM_5 = solve_EoMs_and_sensitivities(V_5, PROM_Assembly, tensors_PROM, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax); 
         timePROMSolve_5 = toc(tStartPROMSolve_5);
         timePROM_5 = toc(tStartPROM_5);
+        printf('Time for PROM 5p: %.2f\n', timePROM_5/60)
         
         % PROM Simulation, 8 parameters ___________________
         tStartPROM_8 = tic;
@@ -151,6 +171,7 @@ for elem_idx = 1:length(elements_vec)
         TI_NL_PROM_8 = solve_EoMs_and_sensitivities(V_8, PROM_Assembly, tensors_PROM, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax); 
         timePROMSolve_8 = toc(tStartPROMSolve_8);
         timePROM_8 = toc(tStartPROM_8);
+        printf('Time for PROM 8p: %.2f\n', timePROM_8/60)
         
         
         % Data Analysis ___________________________________
@@ -198,10 +219,11 @@ for elem_idx = 1:length(elements_vec)
         
         % Calculate maximum displacements (lateral, 2, and horizontal, 1)
            
-        max_uHead_FOM = max(uHead_FOM(1, :));
-        max_uTail_FOM = max(uTail_FOM(2, :));   
+        max_uHead_FOM = max(uHead_FOM(1, :))
+        max_uTail_FOM = max(uTail_FOM(2, :))
         max_uHead_ROM = max(uHead_ROM(1, :));
         max_uTail_ROM = max(uTail_ROM(2, :));
+
         max_uHead_PROM_3 = max(uHead_PROM_3(1, :));
         max_uTail_PROM_3 = max(uTail_PROM_3(2, :));        
         max_uHead_PROM_5 = max(uHead_PROM_5(1, :));
@@ -225,13 +247,10 @@ for elem_idx = 1:length(elements_vec)
         [uHead_sol, uTail_sol] = wrap_head_tail_results(uHead_FOM, uHead_ROM, ...
             uHead_PROM_3, uHead_PROM_5, uHead_PROM_8, uTail_FOM, uTail_ROM, ...
             uTail_PROM_3, uTail_PROM_5, uTail_PROM_8);
-        f = fig_head_tail_motion(uHead_sol, uTail_sol, timePlot, Lx, Ly, ...
-            []);    % to add rectangle: [0.875 0.839 0.04 0.07]
+        f = fig_head_tail_motion(uHead_sol, uTail_sol, timePlot, Lx, Ly, []);
         
         % Save figure
-        fig_filename = sprintf('Results/Figures/PDF/A_Displacement_Comparison_%del_kActu_%.3f.pdf', num_elements, kActu);
-        exportgraphics(f, fig_filename, 'Resolution', 600);
-        fig_filename = sprintf('Results/Figures/JPG/A_Displacement_Comparison_%del_kActu_%.3f.jpg', num_elements, kActu);
+        fig_filename = sprintf('Results/Figures/A_FOM_PROM/Trajectories/A_Displacement_Comparison_%del_kActu_%.3f.pdf', num_elements, kActu);
         exportgraphics(f, fig_filename, 'Resolution', 600);
 
         % Close the figure to avoid memory issues during iterations
@@ -240,11 +259,11 @@ for elem_idx = 1:length(elements_vec)
     end
     
     % Save summary table for each mesh
-    results_table_filename = sprintf('Results/Data/A_results_%del.csv', num_elements);
+    results_table_filename = sprintf('Results/Data/A_FOM_PROM/A_results_%del.csv', num_elements);
     csvwrite(results_table_filename,results_matrix);
 end
 
-%%
+%% FIGURE
 [uHead_sol, uTail_sol] = wrap_head_tail_results(uHead_FOM, uHead_ROM, ...
     uHead_PROM_3, uHead_PROM_5, uHead_PROM_8, uTail_FOM, uTail_ROM, ...
     uTail_PROM_3, uTail_PROM_5, uTail_PROM_8);
@@ -254,11 +273,11 @@ fig = fig_head_tail_motion(uHead_sol, uTail_sol, timePlot, Lx, Ly, ...
 %% RESULTS ANALYSIS AND PLOTS _____________________________________________
 
 %% Read results from csv
-nElementsForResult = [1272, 4270, 8086, 16009, 24822]; % Number of elements for each input file
-% nElementsForResult = [1272, 4270];
+nElementsForResult = [1272, 4270, 8086, 16009]; % Number of elements for each input file, 24822
+nElementsForResult = [4270, 8086];
 for i=1:length(nElementsForResult)
     nElements = nElementsForResult(i);
-    filename = sprintf('Results/Data/A_results_%del.csv', nElements); % sprintf('Results/Data/temp_A_results_new_%del.csv', nElements);
+    filename = sprintf('Results/Data/A_FOM_PROM/A_results_%del.csv', nElements); % sprintf('Results/Data/temp_A_results_new_%del.csv', nElements);
     if i==1
         resultSummary = readmatrix(filename);
     else
@@ -375,7 +394,7 @@ else
     set(ylMiddle,'Pos',[ylBottom.Position(1) ylMiddle.Position(2) ylMiddle.Position(3)]);
 end
 
-fig_filename = 'Results/Figures/PDF/08_A_results_computational_time.pdf';
+fig_filename = 'Results/Figures/A_FOM_PROM/08_A_results_computational_time_03_02.pdf';
 exportgraphics(f, fig_filename, 'Resolution', 600);
 
 %% Plot accuracy as heat map
@@ -450,7 +469,7 @@ annotation('textbox', [0.29 0.733 0.05 0.08],...
 
 hold off
 
-fig_filename = 'Results/Figures/PDF/09_A_results_rel_error_forward.pdf';
+fig_filename = 'Results/Figures/A_FOM_PROM/09_A_results_rel_error_forward_03_02.pdf';
 exportgraphics(f, fig_filename, 'Resolution', 600);
 
 
