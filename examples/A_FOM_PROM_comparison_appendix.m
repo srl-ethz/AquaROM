@@ -15,7 +15,55 @@ if(~isdeployed)
 end
 set(groot,'defaultAxesTickLabelInterpreter','latex');  
 set(groot,'defaulttextinterpreter','latex');
-load('parameters.mat') 
+load('parameters.mat')
+
+%% EXTRA RESULT - MAX STRAIN COMPUTATION (StVK MODEL VALIDITY)_____________
+num_elements = 8086;
+kActu = 9.5*1e4;%0.8*1e5;
+% propRigid = 0.35;
+% muscleBoundaries = [0.95,0.35]
+filename = strcat('InputFiles/3d_rectangle_', num2str(num_elements), 'el');  % Construct filena
+[Mesh_FOM, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
+% muscleBoundaries = [0.9, 0.25]
+[Lx, Ly, Lz] = mesh_dimensions_3D(nodes);
+    
+% Set boundary conditions for FOM and ROM
+for l = 1:length(nsetBC)
+    Mesh_FOM.set_essential_boundary_condition([nsetBC{l}], 2:3, 0);
+end
+
+% Simulate FOM for half an oscillation period
+h = 0.02;
+tmax = 0.3;
+tStartFOM = tic;
+fprintf('\nBuilding and solving FOM for %d elements, kActu: %.3f...\n', num_elements, kActu);
+[Assembly, tailProperties, spineProperties, dragProperties, actuLeft, actuRight] = ...
+    build_FOM_3D(Mesh_FOM, nodes, elements, muscleBoundaries);
+TI_NL_FOM = solve_EoMs_FOM(Assembly, elements, tailProperties, spineProperties, dragProperties, actuLeft, actuRight, kActu, h, tmax);
+timeFOM = toc(tStartFOM);
+sol_FOM = Assembly.unconstrain_vector(TI_NL_FOM.Solution.q);
+fprintf("\nBuilding and solving FOM in %.2f\n",timeFOM);
+
+% Obtain moment with maximal amplitude and store the deformation
+idx = tailProperties.tailNode*3-2 : tailProperties.tailNode*3;
+uTail_FOM = sol_FOM(idx, 1:tmax/h) * 100;
+[maxAmplitude, stepMaxAmp] = max(uTail_FOM(2,:));
+fprintf("\nMaximum amplitude %.2f reached at %.2f s\n", maxAmplitude, stepMaxAmp*h);
+%
+% Get maximum strain in the deformed configuration
+out = Assembly.max_strain_in_structure(sol_FOM(:,stepMaxAmp));
+fprintf("\nMax strain = %.3f in element %d (GP %d)\n", out.smax, out.element, out.gaussPoint);
+
+%%
+figure
+elHighlightWeights = zeros(num_elements,1);
+elHighlightWeights(out.element) = 1;
+h = HighlightElement(nodes,elements,elHighlightWeights,"red");
+%%
+figure
+elementPlot = elements(:,1:4);    
+u = reshape(sol_FOM(:,stepMaxAmp), 3, []).';
+h2 = PlotFieldonDeformedMesh_ext(nodes, elementPlot, u, 'lineWidth',0.2);
 
 %% APPENDIX C.1 - ROB SELECTION - ITERATIVE TESTING OF MULTIPLE CASES _____
 

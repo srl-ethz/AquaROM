@@ -1,8 +1,9 @@
 % shape_variations_3D
 %
 % Synthax:
-% [thinFish,shortFish,linearTail,longTail,shortTail,linearHead,longHead,shortHead] 
-% = shape_variations_3D(nodes,Lx,Ly)
+% [y_thinFish,z_smallFish,z_tail,z_head,z_linLongTail, z_notch, ...
+%    y_tail,y_head,y_linLongTail,y_ellipseFish,xz_concaveTail]
+%       = shape_variations_3D(nodes,Lx,Ly)
 %
 % Description: Defines the shape variations used for the 3D case study
 %
@@ -16,7 +17,7 @@
 % (1) [...]:    11 shape variations
 %     
 %
-% Last modified: 06/02/2025, Mathieu Dubied, ETH Zurich
+% Last modified: 04/02/2026, Mathieu Dubied, ETH Zurich
 function [y_thinFish,z_smallFish,z_tail,z_head,z_linLongTail, z_notch, ...
     y_tail,y_head,y_linLongTail,y_ellipseFish,xz_concaveTail] = ...
     shape_variations_3D(nodes,Lx,Ly,Lz)
