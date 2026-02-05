@@ -17,9 +17,12 @@ set(groot,'defaultAxesTickLabelInterpreter','latex');
 set(groot,'defaulttextinterpreter','latex');
 load('parameters.mat')
 
+muscleBoundaries = [0.95, 0.27];
+propRigid = [0.27]
+
 %% EXTRA RESULT - MAX STRAIN COMPUTATION (StVK MODEL VALIDITY)_____________
 num_elements = 8086;
-kActu = 9.5*1e4;%0.8*1e5;
+kActu = 7.4*1e4;%0.8*1e5;
 % propRigid = 0.35;
 % muscleBoundaries = [0.95,0.35]
 filename = strcat('InputFiles/3d_rectangle_', num2str(num_elements), 'el');  % Construct filena

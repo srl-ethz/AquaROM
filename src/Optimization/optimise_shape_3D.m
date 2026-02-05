@@ -50,7 +50,8 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
 
     % parse input
     [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,...
-        rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA] = parse_inputs(varargin{:});
+        rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA, ...
+        paramInit] = parse_inputs(varargin{:});
 
     fprintf('**************************************\n')
     fprintf('Solving for the nominal structure...\n')
@@ -85,6 +86,26 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
     dorsalNodesStructFromUser.matchedDorsalNodesIdx = spineProperties.dorsalNodeIdx;
     dorsalNodesStructFromUser.dorsalNodesElementsVec = spineProperties.dorsalNodesElementVec;
     dorsalNodesStructFromUser.matchedDorsalNodesZPos = spineProperties.zPos;
+    
+    if ~isempty(paramInit)   % re-build a PROM for non-nominal initial shape
+        xi_k = paramInit;
+        xiEvo = xi_k;
+        
+        % update nominal mesh nodes according to non-zero initialization
+        df = U*xi_k;                       % displacement fields introduced by defects
+        ddf = [df(1:3:end) df(2:3:end) df(3:3:end)]; 
+        nodes_defected = nodes + ddf;    % nominal + d ---> defected 
+        svMesh = Mesh(nodes_defected);
+        svMesh.create_elements_table(elements,myElementConstructor);
+        for l=1:length(nset)
+            svMesh.set_essential_boundary_condition([nset{l}],1:3,0)   
+        end
+        fprintf('____________________\n')
+        fprintf('Non-zero parameters initialization - building PROM ... \n')
+        [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom] = ...
+            build_PROM_3D(svMesh,nodes,elements,muscleBoundaries,U,...
+            USEJULIA,VOLUME,FORMULATION, 'nomVolVector', volVector, 'dorsalNodes',dorsalNodesStructFromUser); 
+    end
        
     % Solve EoMs
     tic 
@@ -289,7 +310,9 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
 end
 
 % Parse input _____________________________________________________________
-function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA] = parse_inputs(varargin)
+function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
+    nRebuild,rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA,...
+    paramInit] = parse_inputs(varargin)
     defaultMaxIteration = 50;
     defaultConvCrit = 0.001;
     defaultConvCritCost = 0.1;
@@ -300,7 +323,8 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,reb
     defaultWSize = 5;
     defaultFORMULATION = 'N1';
     defaultVOLUME = 1;
-    defaultUSEJULIA = 0; 
+    defaultUSEJULIA = 0;
+    defaultParamInit = [];
     p = inputParser;
     addParameter(p,'maxIteration',defaultMaxIteration, @(x)validateattributes(x, ...
                     {'numeric'},{'nonempty','integer','positive'}) );
@@ -324,6 +348,8 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,reb
                     {'numeric'},{'nonempty'}) );
     addParameter(p,'USEJULIA',defaultUSEJULIA,@(x)validateattributes(x, ...
                     {'numeric'},{'nonempty'}) );
+    addParameter(p, 'paramInit', defaultParamInit, ...
+                    @(x) isempty(x) || (isnumeric(x) && isvector(x)));
     
     parse(p,varargin{:});
     
@@ -338,6 +364,7 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,reb
     FORMULATION = p.Results.FORMULATION;
     VOLUME = p.Results.VOLUME;
     USEJULIA = p.Results.USEJULIA;
+    paramInit = p.Results.paramInit;
 end
 
 % Check condition for rebuild _____________________________________________

@@ -99,7 +99,8 @@ out1 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'nRebuild',6, ...
     'rebuildThreshold',0.15,...
     'wSize', 5, ...
-    'USEJULIA',1);
+    'USEJULIA',1, ...
+    'paramInit', [0.4;0.2;0.1]);
 out1.tOpti = toc(tStart)/60;   % unit is minute
 out1.tPerIt = out1.tOpti/out1.nIt;
 
@@ -247,7 +248,7 @@ filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', 
 load(filename)
 %% PLOT OPTIMAL SHAPE _____________________________________________________
 
-SOIdx = 3;
+SOIdx =   1;
 switch SOIdx
     case 1
         xiStar = out1.xiStar;
