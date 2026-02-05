@@ -29,14 +29,15 @@
 % (8) actuRight:            vectors and matrices related to the actuation
 %                           muscle on the right (y<0)
 %     
-% Last modified: 14/01/2025, Mathieu Dubied, ETH Zürich
+% Last modified: 05/02/2026, Mathieu Dubied, ETH Zürich
 
 function [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuLeft,actuRight] = ...
     build_PROM_3D(MeshNominal,nodes,elements,muscleBoundaries,U,USEJULIA,VOLUME,FORMULATION,varargin)
 
     startPROMBuilding = tic;
     
-    [USE_GIVEN_DORSAL_NODES, dorsalNodesStructFromUser] = parse_inputs(varargin);
+    [USE_GIVEN_DORSAL_NODES, dorsalNodesStructFromUser, ...
+        USE_NOM_MUSCLE_VOL, nomVolVector] = parse_inputs(varargin{:});
     
     % 2D or 3D? ___________________________________________________________
     fishDim = size(nodes,2);
@@ -226,7 +227,11 @@ function [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProper
         end    
     end
     
-    actuLeft = reduced_tensors_actuation_PROM(NominalAssembly, V, U, leftMuscle, actuationDirection);
+    if USE_NOM_MUSCLE_VOL
+        actuLeft = reduced_tensors_actuation_PROM(NominalAssembly, V, U, leftMuscle, actuationDirection, nomVolVector);
+    else
+        actuLeft = reduced_tensors_actuation_PROM(NominalAssembly, V, U, leftMuscle, actuationDirection);
+    end
 
     % right muscle (y<0)
     rightMuscle = zeros(nel,1);
@@ -237,26 +242,30 @@ function [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProper
             rightMuscle(el) = 1;
         end    
     end
-
-    actuRight = reduced_tensors_actuation_PROM(NominalAssembly, V, U, rightMuscle, actuationDirection);
+    
+    if USE_NOM_MUSCLE_VOL
+        actuRight = reduced_tensors_actuation_PROM(NominalAssembly, V, U, rightMuscle, actuationDirection, nomVolVector);
+    else
+        actuRight = reduced_tensors_actuation_PROM(NominalAssembly, V, U, rightMuscle, actuationDirection);
+    end
     fprintf('Time to build PROM: %.2fsec\n',toc(startPROMBuilding))
 
 end 
 
 % parse optional input: dorsal nodes provided by the user
-function [USE_GIVEN_DORSAL_NODES, dorsalNodes] = parse_inputs(varargin)
+function [USE_GIVEN_DORSAL_NODES, dorsalNodes, USE_NOM_MUSCLE_VOL, nomVolVector] = parse_inputs(varargin)
     
-    defaultDorsalNodes = [];
-
     p = inputParser;
-    addOptional(p,'dorsalNodes',defaultDorsalNodes);
-       
-    parse(p,varargin{:});
-    
-    dorsalNodes = p.Results.dorsalNodes;
-    if ~isempty(dorsalNodes)
-        USE_GIVEN_DORSAL_NODES = true;
-    else
-        USE_GIVEN_DORSAL_NODES = false;
-    end
+    p.FunctionName = mfilename;
+
+    addParameter(p, 'dorsalNodes',   [], @(x) isempty(x) || isvector(x));
+    addParameter(p, 'nomVolVector',  [], @(x) isempty(x) || isvector(x));
+
+    parse(p, varargin{:});
+
+    dorsalNodes   = p.Results.dorsalNodes;
+    nomVolVector  = p.Results.nomVolVector;
+
+    USE_GIVEN_DORSAL_NODES = ~isempty(dorsalNodes);
+    USE_NOM_MUSCLE_VOL     = ~isempty(nomVolVector);
 end
