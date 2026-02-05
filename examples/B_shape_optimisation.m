@@ -44,12 +44,15 @@ end
 %% SHAPE VARIATIONS _______________________________________________________
 
 [y_thinFish,z_smallFish,z_tail,z_head,z_linLongTail, z_notch,...
-    y_tail,y_head,y_linLongTail,y_ellipseFish, xz_concaveTail] = ...
+    y_tail,y_head,y_linLongTail,y_ellipseFish, xz_concaveTail, y_fin...
+    y_bumpBack, y_bumpFront] = ...
     shape_variations_3D(nodes,Lx,Ly,Lz);
 
 % plot an example, with SO1 parameters
 U = [z_tail,z_head,y_thinFish];
-xiPlot = [-0.5;0.5,;0.5];
+xiPlot = [-0.5;0.5,;-0.5];
+U = [y_fin];
+xiPlot = [0.5];
 f1 = figure('units','centimeters','position',[3 3 10 7],'name','Shape-varied mesh');
 elementPlot = elements(:,1:4); hold on 
 v1 = reshape(U*xiPlot, 3, []).';
@@ -66,7 +69,7 @@ set(f1,'Units','centimeters');
 h = 0.02;
 tmax = 2.0;
 kActu = 3.1*1e5;    % multiplicative factor for the actuation forces (8086 elements)
-kActu = 9.5*1e4;
+kActu = 7.4*1e4;
 % kActu = 2.8*1e5;       % value for 16009 elements
 
 %% OPTIMISATION SO1 _______________________________________________________
@@ -114,7 +117,7 @@ save(filename,'out1')
 
 % Preparation (shape variation and opt. constraints)
 U_2 = [z_tail,z_head,y_linLongTail,y_head,y_ellipseFish];
-U_2 = [z_tail,z_head,y_thinFish,y_linLongTail,y_ellipseFish,];
+% U_2 = [z_tail,z_head,y_thinFish,y_head,y_ellipseFish];
 nParam = 5;
 A = zeros(2 * nParam, nParam);
 for i = 1:nParam
@@ -133,9 +136,14 @@ end
 %     0.8;0.8];
 b = [0.5;0.5;
     0.5;0.5;
-    0.15;0.15;
-    0.3;0.3;
-    0.3;0.3];
+    0.4;0.4;
+    0.5;0.5;
+    0.5;0.5];
+% b = [0.5;0.5;
+%     0.5;0.5;
+%     0.15;0.15;
+%     0.3;0.3;
+%     0.3;0.3];
 barrierParam = 2*ones(1,length(b));
 
 % Optimisation
@@ -172,7 +180,8 @@ save(filename,'out2')
 U_3 = [z_tail,z_head,...
     y_linLongTail,y_head,y_ellipseFish,...
     z_smallFish, z_notch, xz_concaveTail];
-U_3 = [z_tail,z_head,y_thinFish,y_linLongTail,y_ellipseFish,y_head,z_notch,xz_concaveTail];
+% U_3 = [z_tail,z_head,y_thinFish,y_head,y_ellipseFish,y_linLongTail,z_notch,xz_concaveTail];
+
 
 nParam = 8;
 A = zeros(2 * nParam, nParam);
@@ -181,21 +190,22 @@ for i = 1:nParam
 end
 b = [0.5;0.5;
     0.5;0.5;
-    0.35;0.35;  
     0.3;0.3;
-    0.4;0.4;    
-    0.35;0.35;
+    0.4;0.4;
     0.3;0.3;
-    0.2; 0.01];  % concave tail only in one direction 
-b = [0.5;0.5;
-    0.5;0.5;
-    0.15;0.15;
+    0.3;0.3 ;
     0.3;0.3;
-    0.3;0.3;   
-    0.3;0.3;
-    0.3;0.3;
-    0.3; 0.01];  % concave tail only in one direction 
-barrierParam = 3*ones(1,length(b)); % 3 for 8086, 1  for 16009
+    0.2;0.01];
+% b = [0.5;0.5;
+%     0.5;0.5;
+%     0.35;0.35;  
+%     0.3;0.3;
+%     0.4;0.4;    
+%     0.35;0.35;
+%     0.3;0.3;
+%     0.2; 0.01];  % concave tail only in one direction 
+
+barrierParam = 2*ones(1,length(b)); % 3 for 8086, 1  for 16009
 
 % Optimisation
 tStart = tic;
