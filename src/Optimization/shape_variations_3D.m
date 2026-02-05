@@ -14,12 +14,13 @@
 % (4) Lz:       size of the nominal shape in the z-direction
 %
 % OUTPUTS:
-% (1) [...]:    11 shape variations
+% (1) [...]:    13 shape variations
 %     
 %
-% Last modified: 04/02/2026, Mathieu Dubied, ETH Zurich
+% Last modified: 05/02/2026, Mathieu Dubied, ETH Zurich
 function [y_thinFish,z_smallFish,z_tail,z_head,z_linLongTail, z_notch, ...
-    y_tail,y_head,y_linLongTail,y_ellipseFish,xz_concaveTail] = ...
+    y_tail,y_head,y_linLongTail,y_ellipseFish,xz_concaveTail, y_fin, ...
+    y_bumpBack, y_bumpFront] = ...
     shape_variations_3D(nodes,Lx,Ly,Lz)
 
     % (1) thinner fish (y direction)
@@ -172,6 +173,48 @@ function [y_thinFish,z_smallFish,z_tail,z_head,z_linLongTail, z_notch, ...
     xz_concaveTail = zeros(numel(nodes),1);
     xz_concaveTail(1:3:end) = xDif;
     xz_concaveTail(3:3:end) = zDif;
+    
+    % (12) fin on the side
+    finCenter = [-Lx*0.4;0];
+    lFin = Lx*0.6;
+    hFin = Lz*0.4;
+    nodes_fin = nodes;
+    yDif = zeros(size(nodes,1),1);
+    for n = 1:size(nodes,1)
+        if (nodes(n,1) <= finCenter(1)+lFin/2) && nodes(n,1) >= finCenter(1)-lFin/2
+            if nodes(n,3) <= hFin/2 && nodes(n,3) >= -hFin/2
+                xWeight = (1000*(lFin.^2/4 -(nodes(n,1)-finCenter(1)).^2)).^2;
+                zWeight = (1000*(nodes(n,3).^2-hFin.^2/4)).^2;
+                nodes_fin(n,2) = nodes(n,2) + 2*nodes(n,2)*xWeight*zWeight;
+            end
+        end
+    end
+    y_fin = zeros(numel(nodes),1);
+    y_fin(2:3:end) = nodes_fin(:,2) - nodes(:,2);
+    
+    % (13) bump on the side
+    bumpCenter = -Lx*0.7;
+    lBump = Lx*0.3;
+    nodes_bump = nodes;
+    for n = 1:size(nodes,1)
+        if nodes(n,1) <= bumpCenter(1)+lBump/2 && nodes(n,1) >= bumpCenter(1)-lBump/2
+                nodes_bump(n,2) = nodes(n,2) + 1e5*nodes(n,2)/(abs(nodes(n,2))+1e5);
+        end
+    end
+    y_bumpBack = zeros(numel(nodes),1);
+    y_bumpBack(2:3:end) = nodes_bump(:,2) - nodes(:,2);
+    
+    % (14) bump 2 on the side
+    bumpCenter = -Lx*0.3;
+    lBump = Lx*0.3;
+    nodes_bump = nodes;
+    for n = 1:size(nodes,1)
+        if nodes(n,1) <= bumpCenter(1)+lBump/2 && nodes(n,1) >= bumpCenter(1)-lBump/2
+                nodes_bump(n,2) = nodes(n,2) + 1e5*nodes(n,2)/(abs(nodes(n,2))+1e5);
+        end
+    end
+    y_bumpFront = zeros(numel(nodes),1);
+    y_bumpFront(2:3:end) = nodes_bump(:,2) - nodes(:,2);
     
 end
 

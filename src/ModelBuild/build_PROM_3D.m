@@ -133,8 +133,8 @@ function [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProper
 
     % get dorsal nodes
     if USE_GIVEN_DORSAL_NODES
-        matchedDorsalNodesIdx = dorsalNodesStructFromUser{2}.matchedDorsalNodesIdx;
-        dorsalNodesElementsVec = dorsalNodesStructFromUser{2}.dorsalNodesElementsVec;
+        matchedDorsalNodesIdx = dorsalNodesStructFromUser.matchedDorsalNodesIdx;
+        dorsalNodesElementsVec = dorsalNodesStructFromUser.dorsalNodesElementsVec;
         nElements = length(elements(:,1));
         matchedDorsalNodesZPos = zeros(nElements,1);
         nSpineEl = length(spineElements);

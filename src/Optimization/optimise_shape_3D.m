@@ -68,7 +68,7 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
             
     MeshNominal = Mesh(nodes);
     MeshNominal.create_elements_table(elements,myElementConstructor);
-    volVector = compute_nominal_vol_per_element(Mesh_ROM,size(elements,1));
+    volVector = compute_nominal_vol_per_element(MeshNominal,size(elements,1));
  
     for l=1:length(nset)
         MeshNominal.set_essential_boundary_condition([nset{l}],1:3,0)   
@@ -76,7 +76,7 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
 
     % build PROM
     fprintf('____________________\n')
-    fprintf('Building PROM ... \n')
+    fprintf('Building nominal PROM ... \n')
 
     [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom] = ...
     build_PROM_3D(MeshNominal,nodes,elements,muscleBoundaries,U,USEJULIA,VOLUME,FORMULATION, 'nomVolVector', volVector); 
@@ -159,7 +159,7 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
             % build PROM
             [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom] = ...
                  build_PROM_3D(svMesh,nodes_defected,elements,muscleBoundaries,U,USEJULIA,VOLUME,FORMULATION,...
-                                'dorsalNodes',dorsalNodesStructFromUser,'nomVolVector', volVector);
+                                'dorsalNodes',dorsalNodesStructFromUser, 'nomVolVector', volVector);
                                                          
             xiRebuild_k = zeros(size(U,2),1);   % reset local xi to 0 as we rebuild the ROM
                         
