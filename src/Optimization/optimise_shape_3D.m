@@ -60,6 +60,7 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
     xi_k = zeros(size(U,2),1);
     xiRebuild_k = zeros(size(U,2),1);
     xiEvo = xi_k;
+    xiRebuildEvo = xiRebuild_k;
     rebuildIdx = [];
 
     nParam = length(xi_k);
@@ -90,6 +91,7 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
     if ~isempty(paramInit)   % re-build a PROM for non-nominal initial shape
         xi_k = paramInit;
         xiEvo = xi_k;
+        xiRebuildEvo = xi_k;
         
         % update nominal mesh nodes according to non-zero initialization
         df = U*xi_k;                       % displacement fields introduced by defects
@@ -272,6 +274,7 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
 
 
         xiEvo = [xiEvo,xi_k];
+        xiRebuildEvo = [xiRebuildEvo,xiRebuild_k];
         
         % possible exit conditions
         if size(xi_k,1) >1
@@ -305,7 +308,7 @@ function out = optimise_shape_3D(myElementConstructor,nset,nodes,elements, ...
     xiStar = xi_k;
     
     out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo,nablaEvo, ...
-        nablaWEvo, nIt,rebuildIdx);
+        nablaWEvo, nIt,rebuildIdx,xiRebuildEvo);
 
 end
 
@@ -431,7 +434,7 @@ end
  
 % Wrap output _____________________________________________________________
 function out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo, ...
-    nablaEvo,nablaWEvo,nIt,rebuildIdx)
+    nablaEvo,nablaWEvo,nIt,rebuildIdx,xiRebuildEvo)
 
     out = struct();
     
@@ -445,6 +448,7 @@ function out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo, ...
     out.nablaWEvo   = nablaWEvo;
     out.nIt         = nIt;
     out.rebuildIdx  = rebuildIdx;
+    out.xiRebuildEvo = xiRebuildEvo;
     
     fprintf('%s\n', exitMsg);
 end

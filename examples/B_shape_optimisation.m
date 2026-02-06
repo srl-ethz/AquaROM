@@ -69,7 +69,7 @@ set(f1,'Units','centimeters');
 h = 0.02;
 tmax = 2.0;
 kActu = 3.1*1e5;    % multiplicative factor for the actuation forces (8086 elements)
-kActu = 7.4*1e4;
+kActu = 6.0*1e4;   %7.4
 % kActu = 2.8*1e5;       % value for 16009 elements
 
 %% OPTIMISATION SO1 _______________________________________________________
@@ -99,8 +99,8 @@ out1 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'nRebuild',6, ...
     'rebuildThreshold',0.15,...
     'wSize', 5, ...
-    'USEJULIA',1, ...
-    'paramInit', [0.4;0.2;0.1]);
+    'USEJULIA',1);% ...
+    %'paramInit', [0.4;0.2;0.1]);
 out1.tOpti = toc(tStart)/60;   % unit is minute
 out1.tPerIt = out1.tOpti/out1.nIt;
 
@@ -194,8 +194,8 @@ b = [0.5;0.5;
     0.3;0.3;
     0.4;0.4;
     0.3;0.3;
-    0.3;0.3 ;
-    0.3;0.3;
+    0.2;0.2;
+    0.2;0.2;
     0.2;0.01];
 % b = [0.5;0.5;
 %     0.5;0.5;
@@ -248,7 +248,7 @@ filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', 
 load(filename)
 %% PLOT OPTIMAL SHAPE _____________________________________________________
 
-SOIdx =   1;
+SOIdx =   3;
 switch SOIdx
     case 1
         xiStar = out1.xiStar;
