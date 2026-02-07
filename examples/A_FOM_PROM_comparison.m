@@ -39,7 +39,7 @@ exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
 %% ITERATIVE TESTING OF MULTIPLE CASES ____________________________________
 
 % Vector of element counts
-elements_vec = [1272, 4270, 8086, 16009]; % Number of elements for each input file 1272, 4270, 8086,16009, , 24822
+elements_vec = [24822]; % Number of elements for each input file 1272, 4270, 8086,16009, , 24822
 kActu_values = {[5.5, 4.9, 4.2, 3.4, 2.5, 1.5, 0.5]*1e5, ...
                 [4.2, 3.6, 3.0, 2.4, 1.8, 1.2, 0.6]*1e5 ...
                 [3.1, 2.6, 2.1, 1.6, 1.1, 0.6, 0.1]*1e5, ...
@@ -65,11 +65,11 @@ kActu_values = {    % 0.95,0.35
             
             
 kActu_values = {
-                [14.5, 12, 10, 8, 6, 3]*1e4, ...
-                [10, 8.5, 7, 5.5, 4, 2.5]*1e4, ... 
-                [8.5, 7, 5.5, 4.2, 2.9, 1.9 ]*1e4, ...  % 7,4
-                [6.6, 5.5, 4.5, 3.5, 2.5, 1.5]*1e4 %, ... 
-%                 [5.0, 0.67, 0.57, 0.43, 0.33, 0.23, 0.10]*1e4
+%                 [14.5, 12, 10, 8, 6, 3]*1e4, ...
+%                 [10, 8.5, 7, 5.5, 4, 2.5]*1e4, ... 
+%                 [8.5, 7, 5.5, 4.2, 2.9, 1.9 ]*1e4, ...  % 7,4
+%                 [6.6, 5.5, 4.5, 3.5, 2.5, 1.5]*1e4 %, ... 
+                [3.6, 3.0, 2.2, 1.6, 5.0, 4.3 ]*1e4 %3.6, 3.0, 2.2, 1.6
                 };
             
 % Set simulation parameters
@@ -284,7 +284,7 @@ fig = fig_head_tail_motion(uHead_sol, uTail_sol, timePlot, Lx, Ly, ...
 %% RESULTS ANALYSIS AND PLOTS _____________________________________________
 
 %% Read results from csv
-nElementsForResult = [1272, 4270, 8086, 16009]; % Number of elements for each input file, 24822
+nElementsForResult = [1272, 4270, 8086, 16009, 24822]; % Number of elements for each input file, 24822
 % nElementsForResult = [4270, 8086];
 for i=1:length(nElementsForResult)
     nElements = nElementsForResult(i);
