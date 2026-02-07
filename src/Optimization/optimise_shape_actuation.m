@@ -1,6 +1,7 @@
-% optimise_actuation
+% optimise_shape_actuation
 %
-% Description: Optimization pipeline for simple actuation optimisation
+% Description: Implementation of the co-optimisation of shape and simple
+% actuation signal. Section 6.3 of the paper
 %
 % INPUTS: 
 % (1) myElementConstructor: defines the type of element and material
@@ -44,7 +45,7 @@
 %
 % Last modified: 07/02/2026, Mathieu Dubied, ETH Zurich
 
-function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
+function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements, ...
                              muscleBoundaries,kActu,U,h,tmax,A,b,varargin)
 
     % parse input
@@ -55,20 +56,39 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
     fprintf('**************************************\n')
     fprintf('Solving for the nominal structure...\n')
     fprintf('**************************************\n')
-
+    
     if isempty(paramInit) 
         error('A parameter initialization paramInit must be provided')
     else
         pActu_k = paramInit;
+        if length(paramInit)>1
+            error('Current implementation is tailored for single parameter actuation and shape variation initialized at 0 (nominal)')
+        end
     end
     
-    pActuResolve_k = zeros(size(pActu_k));
+    % shape parameters
+    xi_k = zeros(size(U,2),1);
+    xiRebuild_k = zeros(size(U,2),1);
+    xiEvo = xi_k;
+    xiRebuildEvo = xiRebuild_k;
+    rebuildIdx = [];
+    nShapeParam = length(xi_k);
+    
+    % actuation parameters
+    pActuRebuild_k = zeros(size(pActu_k));
     pActuEvo = pActu_k;
-    pActuResolveEvo = pActuResolve_k;
-    resolveIdx = [];
-
-    nParam = length(pActu_k);
+    pActuRebuildEvo = pActuRebuild_k;
+    nActuParam = length(pActu_k);
+    
+    % combining parameters
+    p_k = [xi_k; pActu_k];
+    pRebuild_k = [xiRebuild_k; pActuRebuild_k];
+    pRebuildEvo = pRebuild_k;
+    pEvo = p_k;
+    
+    nParam = length(p_k);
     gradientWeights = ones(1,nParam);
+    gradientWeights(end)=0.1;
 
     % Mesh
             
@@ -96,7 +116,7 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
     tic 
     fprintf('____________________\n')
     fprintf('Solving EoMs...\n') 
-    TI_NL_PROM = solve_EoMs_and_sensitivities_actu(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax,pActu_k);          
+    TI_NL_PROM = solve_EoMs_and_sensitivities_co(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax,pActu_k);          
     toc
     nIt = 1;
     
@@ -132,7 +152,7 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
     fprintf('____________________\n')
     fprintf('Computing cost function...\n') 
     N = size(eta,2);
-    [L,LwoB] = reduced_cost_function_w_constraints_TET4(pActu_k,eta_k,V,A,b,barrierParam,wSize);  
+    [L,LwoB] = reduced_cost_function_w_constraints_TET4(p_k,eta_k,V,A,b,barrierParam,wSize);  
    
     LEvo = L;
     LwoBEvo = LwoB;
@@ -140,24 +160,42 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
     nablaWEvo = zeros(size(A,2),1);
     xEvo = uTail(1,end);
 
-    lastResolve = 0;
+    lastRebuild = 0;
 
     for k = 1:maxIteration
         fprintf('**************************************\n')
         fprintf('Optimization loop iteration: k= %d\n',k)
         fprintf('**************************************\n')
 
-        % possible resolve of a PROM
-        if check_cond_rebuild(k,lastResolve,nRebuild,pActuResolve_k,rebuildThreshold,maxIteration)
-            lastResolve = k;
-            resolveIdx = [resolveIdx, lastResolve];                                       
-            pActuResolve_k = zeros(size(pActu_k));   
-                        
+        % possible rebuilding of a PROM
+        if check_cond_rebuild(k,lastRebuild,nRebuild,xiRebuild_k,rebuildThreshold,maxIteration)
+            lastRebuild = k;
+            rebuildIdx = [rebuildIdx, lastRebuild]; 
+         
+            % update defected mesh nodes
+            df = U*xi_k;                       % displacement fields introduced by defects
+            ddf = [df(1:3:end) df(2:3:end) df(3:3:end)]; 
+            nodes_defected = nodes + ddf;    % nominal + d ---> defected 
+            svMesh = Mesh(nodes_defected);
+            svMesh.create_elements_table(elements,myElementConstructor);
+            for l=1:length(nset)
+                svMesh.set_essential_boundary_condition([nset{l}],1:3,0)   
+            end
+
+            % build PROM
+            [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom] = ...
+                 build_PROM_3D(svMesh,nodes_defected,elements,muscleBoundaries,U,USEJULIA,VOLUME,FORMULATION,...
+                                'dorsalNodes',dorsalNodesStructFromUser, 'nomVolVector', volVector);
+                                                         
+            xiRebuild_k = zeros(size(U,2),1);   % reset local xi to 0 as we rebuild the ROM
+            pActuRebuild_k = zeros(size(pActu_k));  
+            pRebuild_k = [xiRebuild_k; pActuRebuild_k];
+            
             % solve EoMs to get updated nominal solutions eta and dot{eta} (on the deformed mesh
             tic 
             fprintf('____________________\n')
             fprintf('Solving EoMs and sensitivity...\n') 
-            TI_NL_PROM = solve_EoMs_and_sensitivities_actu(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax,pActu_k);                        
+            TI_NL_PROM = solve_EoMs_and_sensitivities_co(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax,pActu_k);                        
             toc
             nIt = nIt+1;
                 
@@ -185,11 +223,11 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
             % approximate new solution under new xi, using sensitivity
             fprintf('____________________\n')
             fprintf('Approximating solutions...\n')
-            if size(pActu_k,1)>1
+            if size(p_k,1)>1
                 S=tensor(S);
-                eta_k = eta_0k + double(ttv(S,pActuResolve_k,2));
+                eta_k = eta_0k + double(ttv(S,pRebuild_k,2));
             else
-                eta_k = eta_0k + S*pActuResolve_k;
+                eta_k = eta_0k + S*pRebuild_k;
             end
 
             for a=1:tmax/h
@@ -200,8 +238,8 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
         % compute cost function and its gradient
         fprintf('____________________\n')
         fprintf('Computing cost function and its gradient...\n')   
-        nablaLr = gradient_cost_function_w_constraints_TET4(pActu_k,eta_k,S,V,A,b,barrierParam,wSize);
-        [L,LwoB] = reduced_cost_function_w_constraints_TET4(pActu_k,eta_k,V,A,b,barrierParam,wSize);
+        nablaLr = gradient_cost_function_w_constraints_TET4(p_k,eta_k,S,V,A,b,barrierParam,wSize);
+        [L,LwoB] = reduced_cost_function_w_constraints_TET4(p_k,eta_k,V,A,b,barrierParam,wSize);
 
         LEvo = [LEvo, L];
         LwoBEvo = [LwoBEvo, LwoB];
@@ -217,14 +255,18 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
             gradientWeights = updatedGradientWeights;      
         end
 
-        pActu_k = pActu_k - gStepSize*diag(gradientWeights)*nablaLr
-        pActuResolve_k = pActuResolve_k - gStepSize*diag(gradientWeights)*nablaLr;
+        p_k = p_k - gStepSize*diag(gradientWeights)*nablaLr
+        pRebuild_k = pRebuild_k - gStepSize*diag(gradientWeights)*nablaLr;
+        xi_k = p_k(1:nShapeParam);
+        pActu_k = p_k(nShapeParam+1:end);
+        xiRebuild_k = pRebuild_k(1:nShapeParam);
+        pActuRebuild_k = p_k(nShapeParam+1:end);
         
         nablaWEvo = [nablaWEvo, diag(gradientWeights)*nablaLr];
 
-        pActu_k_clipped = clip_infeasible_parameters(pActu_k,A,b);
-        if ~all(xi_k_clipped == pActu_k)
-            idxToChange = find(pActu_k~=xi_k_clipped);
+        p_k_clipped = clip_infeasible_parameters(p_k,A,b);
+        if ~all(p_k_clipped == p_k)
+            idxToChange = find(p_k~=p_k_clipped);
             for idx = 1:length(idxToChange)
                gradientWeights(idxToChange(idx)) = ...
                    0.5*gradientWeights(idxToChange(idx));
@@ -235,16 +277,22 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
                 fprintf('Decreasing barrier parameter %d to %.3f...\n',...
                     idxToChange(idx),barrierParam(idxToChange(idx)*2-1))
             end
-            pActuResolve_k = pActuResolve_k + (xi_k_clipped - pActu_k);
-            pActu_k = pActu_k_clipped;
+            pRebuild_k = pRebuild_k + (p_k_clipped - p_k);
+            p_k = p_k_clipped;
+            xi_k = p_k(1:nShapeParam);
+            pActu_k = p_k(nShapeParam+1:end);
+            xiRebuild_k = pRebuild_k(1:nShapeParam);
+            pActuRebuild_k = p_k(nShapeParam+1:end);
+            
         end
 
-        pActuEvo = [pActuEvo,pActu_k];
-        pActuResolveEvo = [pActuResolveEvo,pActuResolve_k];
+
+        pEvo = [pEvo,p_k];
+        pRebuildEvo = [pRebuildEvo,pRebuild_k];
         
         % possible exit conditions
-        if size(pActu_k,1) >1
-            if norm(pActuEvo(:,end)-pActuEvo(:,end-1))<convCrit
+        if size(p_k,1) >1
+            if norm(pEvo(:,end)-pEvo(:,end-1))<convCrit
                 exitMsg  = sprintf('Convergence criterion of %.3f (parameters) fulfilled\n',convCrit);
                 break
             elseif length(LEvo)>7
@@ -254,8 +302,8 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
                 end
             end
         else
-            if norm(pActuEvo(end)-pActuEvo(end-1))<convCrit
-                exitMsg = sprintf('Convergence criterion of %.3f(parameters) fulfilled\n',convCrit);
+            if norm(pEvo(end)-pEvo(end-1))<convCrit
+                exitMsg = fprintf('Convergence criterion of %.3f(parameters) fulfilled\n',convCrit);
                 break
             elseif length(LEvo)>7
                 if var(LEvo(end-6:end)) < convCritCost
@@ -271,10 +319,10 @@ function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
         end
     end
     
-    xiStar = pActu_k;
+    pStar = p_k;
     
-    out = wrap_output(exitMsg,xiStar,pActuEvo,LEvo,LwoBEvo,xEvo,nablaEvo, ...
-        nablaWEvo, nIt,resolveIdx,pActuResolveEvo);
+    out = wrap_output(exitMsg,pStar,pEvo,LEvo,LwoBEvo,xEvo,nablaEvo, ...
+        nablaWEvo, nIt,rebuildIdx,pRebuildEvo);
 
 end
 
@@ -399,14 +447,14 @@ function param = clip_infeasible_parameters(p,A,b)
 end
  
 % Wrap output _____________________________________________________________
-function out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo, ...
-    nablaEvo,nablaWEvo,nIt,rebuildIdx,xiRebuildEvo)
+function out = wrap_output(exitMsg,pStar,pEvo,LEvo,LwoBEvo,xEvo, ...
+    nablaEvo,nablaWEvo,nIt,rebuildIdx,pRebuildEvo)
 
     out = struct();
     
     out.exitMsg     = exitMsg;
-    out.xiStar      = xiStar;
-    out.xiEvo       = xiEvo;
+    out.pStar      = pStar;
+    out.pEvo       = pEvo;
     out.LEvo        = LEvo;
     out.LwoBEvo     = LwoBEvo;
     out.xEvo        = xEvo;
@@ -414,7 +462,7 @@ function out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo, ...
     out.nablaWEvo   = nablaWEvo;
     out.nIt         = nIt;
     out.rebuildIdx  = rebuildIdx;
-    out.xiRebuildEvo = xiRebuildEvo;
+    out.pRebuildEvo = pRebuildEvo;
     
     fprintf('%s\n', exitMsg);
 end

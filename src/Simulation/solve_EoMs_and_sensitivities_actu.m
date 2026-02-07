@@ -4,8 +4,11 @@
 % TI_NL_PROM = solve_EoMs_and_sensitivities_actu(V,ROM_Assembly,tailProperties,spineProperties,actuTop,actuBottom,h,tmax,pActu)
 %
 % Description: Computes the solutions for eta,dot{eta}, ddot{eta} for 
-% [0,tmax] for a given ROM assembly and time step as well as the
+% [0,tmax] for a given PROM assembly and time step as well as the
 % corresponding sensitivities (in a combined fashion)
+%
+% Note: this function is specific to actuation optimization only (no
+%       shape optimization)
 %
 % INPUTS: 
 % (1) V:                    ROB   
@@ -38,7 +41,7 @@ function TI_NL_PROM = solve_EoMs_and_sensitivities_actu(V,PROM_Assembly,fIntTens
     eta0 = zeros(size(V,2),1);
     etad0 = zeros(size(V,2),1);
     etadd0 = zeros(size(V,2),1);
-
+   
     s0 = zeros(size(V,2),length(pActu));
     sd0 = zeros(size(V,2),length(pActu));
     sdd0 = zeros(size(V,2),length(pActu));
