@@ -67,9 +67,9 @@ kActu_values = {    % 0.95,0.35
 kActu_values = {
 %                 [14.5, 12, 10, 8, 6, 3]*1e4, ...
 %                 [10, 8.5, 7, 5.5, 4, 2.5]*1e4, ... 
-%                 [8.5, 7, 5.5, 4.2, 2.9, 1.9 ]*1e4, ...  % 7,4
-%                 [6.6, 5.5, 4.5, 3.5, 2.5, 1.5]*1e4 %, ... 
-                [3.6, 3.0, 2.2, 1.6, 5.0, 4.3 ]*1e4 %3.6, 3.0, 2.2, 1.6
+%                 [8.5, 7, 5.5, 4.2, 2.9, 1.9 ]*1e4, ...  
+%                 [7.4]*1e4;%, 6.6, 5.5, 4.5, 3.5, 2.5, 1.5]*1e4 %, ... 7.2
+                [6.2]*1e4%[3.6, 3.0, 2.2, 1.6, 5.0, 4.3 ]*1e4  5.5. 6.0 ok
                 };
             
 % Set simulation parameters
@@ -270,7 +270,7 @@ for elem_idx = 1:length(elements_vec)
     end
     
     % Save summary table for each mesh
-    results_table_filename = sprintf('Results/Data/A_FOM_PROM/A_results_%del.csv', num_elements);
+    results_table_filename = sprintf('Results/Data/A_FOM_PROM/A_results_%del_4.csv', num_elements);
     csvwrite(results_table_filename,results_matrix);
 end
 
