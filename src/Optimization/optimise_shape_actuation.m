@@ -51,7 +51,7 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
     % parse input
     [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,...
         rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA, ...
-        paramInit] = parse_inputs(varargin{:});
+        paramInit, w1, w2, alphaActu] = parse_inputs(varargin{:});
 
     fprintf('**************************************\n')
     fprintf('Solving for the nominal structure...\n')
@@ -152,10 +152,12 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
     fprintf('____________________\n')
     fprintf('Computing cost function...\n') 
     N = size(eta,2);
-    [L,LwoB] = reduced_cost_function_w_constraints_TET4(p_k,eta_k,V,A,b,barrierParam,wSize);  
+    [L,LwoB,LObj1,LObj2] = reduced_cost_function_w_constraints_multi_objective(p_k,eta_k,V,A,b,barrierParam,wSize,w1,w2,alphaActu);  
    
     LEvo = L;
     LwoBEvo = LwoB;
+    LObj1Evo=LObj1;
+    LObj2Evo=LObj2;
     nablaEvo = zeros(size(A,2),1);
     nablaWEvo = zeros(size(A,2),1);
     xEvo = uTail(1,end);
@@ -238,11 +240,13 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
         % compute cost function and its gradient
         fprintf('____________________\n')
         fprintf('Computing cost function and its gradient...\n')   
-        nablaLr = gradient_cost_function_w_constraints_TET4(p_k,eta_k,S,V,A,b,barrierParam,wSize);
-        [L,LwoB] = reduced_cost_function_w_constraints_TET4(p_k,eta_k,V,A,b,barrierParam,wSize);
+        nablaLr = gradient_cost_function_w_constraints_multi_objective(p_k,eta_k,S,V,A,b,barrierParam,wSize,w1,w2,alphaActu);  
+        [L,LwoB,LObj1,LObj2] = reduced_cost_function_w_constraints_multi_objective(p_k,eta_k,V,A,b,barrierParam,wSize,w1,w2,alphaActu);  
 
         LEvo = [LEvo, L];
         LwoBEvo = [LwoBEvo, LwoB];
+        LObj1Evo=[LObj1Evo,LObj1];
+        LObj2Evo=[LObj2Evo,LObj2];
         nablaEvo = [nablaEvo,nablaLr];
         xEvo = [xEvo,uTail(1,end)];
         
@@ -321,7 +325,7 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
     
     pStar = p_k;
     
-    out = wrap_output(exitMsg,pStar,pEvo,LEvo,LwoBEvo,xEvo,nablaEvo, ...
+    out = wrap_output(exitMsg,pStar,pEvo,LEvo,LwoBEvo,LObj1Evo,LObj2Evo,xEvo,nablaEvo, ...
         nablaWEvo, nIt,rebuildIdx,pRebuildEvo);
 
 end
@@ -329,7 +333,7 @@ end
 % Parse input _____________________________________________________________
 function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
     nRebuild,rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA,...
-    paramInit] = parse_inputs(varargin)
+    paramInit,w1,w2,alphaActu] = parse_inputs(varargin)
     defaultMaxIteration = 50;
     defaultConvCrit = 0.001;
     defaultConvCritCost = 0.1;
@@ -342,6 +346,9 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
     defaultVOLUME = 1;
     defaultUSEJULIA = 0;
     defaultParamInit = [];
+    defaultw1 = 0.5;
+    defaultw2 = 0.5;
+    defaultalphaActu = 5;
     p = inputParser;
     addParameter(p,'maxIteration',defaultMaxIteration, @(x)validateattributes(x, ...
                     {'numeric'},{'nonempty','integer','positive'}) );
@@ -367,7 +374,13 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
                     {'numeric'},{'nonempty'}) );
     addParameter(p, 'paramInit', defaultParamInit, ...
                     @(x) isempty(x) || (isnumeric(x) && isvector(x)));
-    
+    addParameter(p,'w1',defaultw1,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
+    addParameter(p,'w2',defaultw2,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
+    addParameter(p,'alphaActu',defaultalphaActu,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
+               
     parse(p,varargin{:});
     
     maxIteration = p.Results.maxIteration;
@@ -382,6 +395,9 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
     VOLUME = p.Results.VOLUME;
     USEJULIA = p.Results.USEJULIA;
     paramInit = p.Results.paramInit;
+    w1 = p.Results.w1;
+    w2 = p.Results.w2;
+    alphaActu = p.Results.alphaActu;
 end
 
 % Check condition for rebuild _____________________________________________
@@ -447,7 +463,7 @@ function param = clip_infeasible_parameters(p,A,b)
 end
  
 % Wrap output _____________________________________________________________
-function out = wrap_output(exitMsg,pStar,pEvo,LEvo,LwoBEvo,xEvo, ...
+function out = wrap_output(exitMsg,pStar,pEvo,LEvo,LwoBEvo,LObj1Evo,LObj2Evo,xEvo, ...
     nablaEvo,nablaWEvo,nIt,rebuildIdx,pRebuildEvo)
 
     out = struct();
@@ -457,6 +473,8 @@ function out = wrap_output(exitMsg,pStar,pEvo,LEvo,LwoBEvo,xEvo, ...
     out.pEvo       = pEvo;
     out.LEvo        = LEvo;
     out.LwoBEvo     = LwoBEvo;
+    out.LObj1Evo    = LObj1Evo;
+    out.LObj2Evo    = LObj2Evo;
     out.xEvo        = xEvo;
     out.nablaEvo    = nablaEvo;
     out.nablaWEvo   = nablaWEvo;
