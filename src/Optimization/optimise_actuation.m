@@ -1,0 +1,421 @@
+% optimise_actuation
+%
+% Description: Optimization pipeline for simple actuation optimisation
+%
+% INPUTS: 
+% (1) myElementConstructor: defines the type of element and material
+%                           properties
+% (2) nset:                 set of element to apply boundary conditions             
+% (3) nodes:                nodes and their coordinates
+% (4) elements:             elements described by their nodes
+% (5) muscleBoudnaries:     boundaries of the muscles, along the x axis
+% (6) kActu:                multiplicative factor for the actuation forces
+% (7) U:                    shape variation basis
+% (8) h:                    time step for time integration
+% (9) tmax:                 simulation for [0,tmax]
+% (10)-(11) A,b             constraints on xi of the form Axi<b
+%
+% possible additional name-value pair arguments
+% (12) maxIteration:maximum number of iterations
+% (13) convCrit:    convergence criterium. Norm between two successive
+%                   optimal paramter vectors
+% (14) FORMULATION: order of the Neumann approximation (N0/N1/N1t)
+% (15) VOLUME:      integration over defected (1) or nominal volume (0)
+% (16) USEJULIA:    use of JULIA (1) for the computation of internal forces
+%                   tensors
+% (17) barrierParam:parameter to scale the barrier function for the 
+%                   constraints (1/barrierParam)
+% (18) gStepSize:   step size used in the gradient descent algorithm
+% (19) nRebuild:    number of step between each re-build of a PROM
+%
+% OUTPUTS: out, a struct with the following fields:
+% (1) exitMsg       exit message with reasons for convergence
+% (2) xiStar:       optimal shape parameter(s) (scalar or vector)
+% (3) xiEvo:        evolution of the optimal shape parameter(s)
+% (4) LEvo:         evolution of the cost function values
+% (5) LwoBEvo:      evolution of the cost function values without barrier
+%                   function part
+% (6) xEvo:         evolution of the swimming distance
+% (7) nablaEvo      evolution of the gradient (no weighting)
+% (8) nablaWEvo     evoluation of the gradient (weighted)
+% (8) nIt:          number of iterations
+% (9) rebuildIdx:   indexes of the iterations at which a model re-build was
+%                   performed (PROM build)
+%
+% Last modified: 07/02/2026, Mathieu Dubied, ETH Zurich
+
+function out = optimise_actuation(myElementConstructor,nset,nodes,elements, ...
+                             muscleBoundaries,kActu,U,h,tmax,A,b,varargin)
+
+    % parse input
+    [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,...
+        rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA, ...
+        paramInit] = parse_inputs(varargin{:});
+
+    fprintf('**************************************\n')
+    fprintf('Solving for the nominal structure...\n')
+    fprintf('**************************************\n')
+
+    if isempty(paramInit) 
+        error('A parameter initialization paramInit must be provided')
+    else
+        pActu_k = paramInit;
+    end
+    
+    pActuResolve_k = zeros(size(pActu_k));
+    pActuEvo = pActu_k;
+    pActuResolveEvo = pActuResolve_k;
+    resolveIdx = [];
+
+    nParam = length(pActu_k);
+    gradientWeights = ones(1,nParam);
+
+    % Mesh
+            
+    MeshNominal = Mesh(nodes);
+    MeshNominal.create_elements_table(elements,myElementConstructor);
+    volVector = compute_nominal_vol_per_element(MeshNominal,size(elements,1));
+ 
+    for l=1:length(nset)
+        MeshNominal.set_essential_boundary_condition([nset{l}],1:3,0)   
+    end
+
+    % build PROM
+    fprintf('____________________\n')
+    fprintf('Building nominal PROM ... \n')
+
+    [V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom] = ...
+    build_PROM_3D(MeshNominal,nodes,elements,muscleBoundaries,U,USEJULIA,VOLUME,FORMULATION, 'nomVolVector', volVector); 
+    
+    % store dorsal nodes for future use
+    dorsalNodesStructFromUser.matchedDorsalNodesIdx = spineProperties.dorsalNodeIdx;
+    dorsalNodesStructFromUser.dorsalNodesElementsVec = spineProperties.dorsalNodesElementVec;
+    dorsalNodesStructFromUser.matchedDorsalNodesZPos = spineProperties.zPos;
+       
+    % Solve EoMs
+    tic 
+    fprintf('____________________\n')
+    fprintf('Solving EoMs...\n') 
+    TI_NL_PROM = solve_EoMs_and_sensitivities_actu(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax,pActu_k);          
+    toc
+    nIt = 1;
+    
+    uTail = zeros(3,tmax/h);
+    timePlot = linspace(0,tmax-h,tmax/h);
+    x0Tail = min(nodes(:,1));
+    for a=1:tmax/h
+        uTail(:,a) = V(tailProperties.tailNode*3-2:tailProperties.tailNode*3,:)*TI_NL_PROM.Solution.q(:,a);
+    end
+
+    figure
+    subplot(2,1,1);
+    plot(timePlot,(x0Tail+uTail(1,:))*100,'DisplayName','k=0')
+    hold on
+    xlabel('Time [s]')
+    ylabel('Tail x-position [cm]')
+    legend('Location','northwest')
+    subplot(2,1,2);
+    plot(timePlot,uTail(2,:)*100,'DisplayName','k=0')
+    hold on
+    xlabel('Time [s]')
+    ylabel('Tail y-position [cm]')
+    legend('Location','southwest')
+    drawnow
+    
+    % Retrieving solutions    
+    eta = TI_NL_PROM.Solution.q;
+    S = TI_NL_PROM.Solution.s;
+    eta_0k = TI_NL_PROM.Solution.q;
+    eta_k = eta;
+    
+    % computing initial cost function value
+    fprintf('____________________\n')
+    fprintf('Computing cost function...\n') 
+    N = size(eta,2);
+    [L,LwoB] = reduced_cost_function_w_constraints_TET4(pActu_k,eta_k,V,A,b,barrierParam,wSize);  
+   
+    LEvo = L;
+    LwoBEvo = LwoB;
+    nablaEvo = zeros(size(A,2),1);
+    nablaWEvo = zeros(size(A,2),1);
+    xEvo = uTail(1,end);
+
+    lastResolve = 0;
+
+    for k = 1:maxIteration
+        fprintf('**************************************\n')
+        fprintf('Optimization loop iteration: k= %d\n',k)
+        fprintf('**************************************\n')
+
+        % possible resolve of a PROM
+        if check_cond_rebuild(k,lastResolve,nRebuild,pActuResolve_k,rebuildThreshold,maxIteration)
+            lastResolve = k;
+            resolveIdx = [resolveIdx, lastResolve];                                       
+            pActuResolve_k = zeros(size(pActu_k));   
+                        
+            % solve EoMs to get updated nominal solutions eta and dot{eta} (on the deformed mesh
+            tic 
+            fprintf('____________________\n')
+            fprintf('Solving EoMs and sensitivity...\n') 
+            TI_NL_PROM = solve_EoMs_and_sensitivities_actu(V,PROM_Assembly,tensors_PROM,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax,pActu_k);                        
+            toc
+            nIt = nIt+1;
+                
+            eta_0k = TI_NL_PROM.Solution.q;
+            eta_k = TI_NL_PROM.Solution.q;
+            S = TI_NL_PROM.Solution.s;
+    
+            N = size(eta_k,2);
+
+            uTail = zeros(3,tmax/h);
+            for a=1:tmax/h
+                uTail(:,a) = V(tailProperties.tailNode*3-2:tailProperties.tailNode*3,:)*TI_NL_PROM.Solution.q(:,a);
+            end 
+            subplot(2,1,1);
+            plot(timePlot,(x0Tail+uTail(1,:))*100,'DisplayName',strcat('k=',num2str(k)))
+            legend
+            drawnow
+     
+            subplot(2,1,2);
+            plot(timePlot,uTail(2,:)*100,'DisplayName',strcat('k=',num2str(k)))
+            legend
+            drawnow
+            
+        else
+            % approximate new solution under new xi, using sensitivity
+            fprintf('____________________\n')
+            fprintf('Approximating solutions...\n')
+            if size(pActu_k,1)>1
+                S=tensor(S);
+                eta_k = eta_0k + double(ttv(S,pActuResolve_k,2));
+            else
+                eta_k = eta_0k + S*pActuResolve_k;
+            end
+
+            for a=1:tmax/h
+                uTail(:,a) = V(tailProperties.tailNode*3-2:tailProperties.tailNode*3,:)*eta_k(:,a);
+            end  
+        end 
+
+        % compute cost function and its gradient
+        fprintf('____________________\n')
+        fprintf('Computing cost function and its gradient...\n')   
+        nablaLr = gradient_cost_function_w_constraints_TET4(pActu_k,eta_k,S,V,A,b,barrierParam,wSize);
+        [L,LwoB] = reduced_cost_function_w_constraints_TET4(pActu_k,eta_k,V,A,b,barrierParam,wSize);
+
+        LEvo = [LEvo, L];
+        LwoBEvo = [LwoBEvo, LwoB];
+        nablaEvo = [nablaEvo,nablaLr];
+        xEvo = [xEvo,uTail(1,end)];
+        
+        % update optimal parameter
+        fprintf('____________________\n')
+        fprintf('Updating optimal parameter...\n') 
+        updatedGradientWeights = adapt_learning_rate(nablaEvo,gradientWeights);
+
+        if ~all(gradientWeights == updatedGradientWeights) 
+            gradientWeights = updatedGradientWeights;      
+        end
+
+        pActu_k = pActu_k - gStepSize*diag(gradientWeights)*nablaLr
+        pActuResolve_k = pActuResolve_k - gStepSize*diag(gradientWeights)*nablaLr;
+        
+        nablaWEvo = [nablaWEvo, diag(gradientWeights)*nablaLr];
+
+        xi_k_clipped = clip_infeasible_parameters(pActu_k,A,b);
+        if ~all(xi_k_clipped == pActu_k)
+            idxToChange = find(pActu_k~=xi_k_clipped);
+            for idx = 1:length(idxToChange)
+               gradientWeights(idxToChange(idx)) = ...
+                   0.5*gradientWeights(idxToChange(idx));
+               fprintf('Adapting learning rate for xi%d to %.3f...\n',...
+                   idxToChange(idx),gradientWeights(idxToChange(idx)))
+                barrierParam(idxToChange(idx)*2-1:idxToChange(idx)*2) = ...
+                    0.5*barrierParam(idxToChange(idx)*2-1:idxToChange(idx)*2);
+                fprintf('Decreasing barrier parameter %d to %.3f...\n',...
+                    idxToChange(idx),barrierParam(idxToChange(idx)*2-1))
+            end
+            pActuResolve_k = pActuResolve_k + (xi_k_clipped - pActu_k);
+            pActu_k = xi_k_clipped;
+        end
+
+        pActuEvo = [pActuEvo,pActu_k];
+        pActuResolveEvo = [pActuResolveEvo,pActuResolve_k];
+        
+        % possible exit conditions
+        if size(pActu_k,1) >1
+            if norm(pActuEvo(:,end)-pActuEvo(:,end-1))<convCrit
+                exitMsg  = sprintf('Convergence criterion of %.3f (parameters) fulfilled\n',convCrit);
+                break
+            elseif length(LEvo)>7
+                if var(LEvo(end-6:end)) < convCritCost
+                    exitMsg  = sprintf('Convergence criterion of %.3f (cost) fulfilled\n',convCritCost);
+                    break
+                end
+            end
+        else
+            if norm(pActuEvo(end)-pActuEvo(end-1))<convCrit
+                exitMsg = sprintf('Convergence criterion of %.3f(parameters) fulfilled\n',convCrit);
+                break
+            elseif length(LEvo)>7
+                if var(LEvo(end-6:end)) < convCritCost
+                    exitMsg = sprintf('Convergence criterion of %.3f (cost) fulfilled\n',convCritCost);
+                    break
+                end
+            end
+        end
+
+        if k == maxIteration
+            exitMsg = sprintf('Maximum number of %d iterations reached\n',maxIteration);
+            
+        end
+    end
+    
+    xiStar = pActu_k;
+    
+    out = wrap_output(exitMsg,xiStar,pActuEvo,LEvo,LwoBEvo,xEvo,nablaEvo, ...
+        nablaWEvo, nIt,resolveIdx,pActuResolveEvo);
+
+end
+
+% Parse input _____________________________________________________________
+function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
+    nRebuild,rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA,...
+    paramInit] = parse_inputs(varargin)
+    defaultMaxIteration = 50;
+    defaultConvCrit = 0.001;
+    defaultConvCritCost = 0.1;
+    defaultBarrierParam = 500;
+    defaultGStepSize = 0.1;
+    defaultNRebuild = 10;
+    defaultRebuildThreshold = 0.2;
+    defaultWSize = 5;
+    defaultFORMULATION = 'N1';
+    defaultVOLUME = 1;
+    defaultUSEJULIA = 0;
+    defaultParamInit = [];
+    p = inputParser;
+    addParameter(p,'maxIteration',defaultMaxIteration, @(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty','integer','positive'}) );
+    addParameter(p,'convCrit',defaultConvCrit,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty','positive'}) );
+    addParameter(p,'convCritCost',defaultConvCritCost,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty','positive'}) );
+    addParameter(p,'barrierParam',defaultBarrierParam,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty','positive'}) );
+    addParameter(p,'gStepSize',defaultGStepSize,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty','positive'}) );
+    addParameter(p,'nRebuild',defaultNRebuild,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty','positive'}) );
+    addParameter(p,'rebuildThreshold',defaultRebuildThreshold,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty','positive'}) );
+    addParameter(p,'wSize',defaultWSize,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
+    addParameter(p,'FORMULATION',defaultFORMULATION,@(x)validateattributes(x, ...
+                    {'char'},{'nonempty'}))
+    addParameter(p,'VOLUME',defaultVOLUME,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
+    addParameter(p,'USEJULIA',defaultUSEJULIA,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
+    addParameter(p, 'paramInit', defaultParamInit, ...
+                    @(x) isempty(x) || (isnumeric(x) && isvector(x)));
+    
+    parse(p,varargin{:});
+    
+    maxIteration = p.Results.maxIteration;
+    convCrit = p.Results.convCrit;
+    convCritCost = p.Results.convCritCost;
+    barrierParam = p.Results.barrierParam;
+    gStepSize = p.Results.gStepSize;
+    nRebuild = p.Results.nRebuild;
+    rebuildThreshold = p.Results.rebuildThreshold;
+    wSize = p.Results.wSize;
+    FORMULATION = p.Results.FORMULATION;
+    VOLUME = p.Results.VOLUME;
+    USEJULIA = p.Results.USEJULIA;
+    paramInit = p.Results.paramInit;
+end
+
+% Check condition for rebuild _____________________________________________
+function cond = check_cond_rebuild(k,lastRebuild,nRebuild, xiRebuild_k, ...
+                                    rebuildThreshold,maxIteration)
+    cond = 0;
+
+    if mod(k-lastRebuild,nRebuild) == 0 
+        cond = 1;
+        fprintf('____________________\n')
+        fprintf('Rebuilding PROM (max lin. iterations) ...\n')
+    elseif any(abs(xiRebuild_k) > rebuildThreshold)
+        cond = 1;
+        criticalParams = find(abs(xiRebuild_k) > rebuildThreshold);
+        fprintf('____________________\n')
+        fprintf('Rebuilding PROM (delta xi>threshold) for \n') 
+        fprintf(' xi%.0f \n', criticalParams) 
+    elseif maxIteration-k<0.2*maxIteration ...
+            && mod(k-lastRebuild,int16(nRebuild/1.33)) == 0
+        cond = 1;
+        fprintf('____________________\n')
+        fprintf('Rebuilding PROM (max lin. iteration - close to end) ...\n')
+    end
+    
+end
+
+% Adapt gradient __________________________________________________________
+function gradientWeights = adapt_learning_rate(nablaEvo,currentGradientWeights)
+    nParam = size(nablaEvo,1);
+    gradientWeights = currentGradientWeights;
+    for p = 1:nParam
+        if sign(nablaEvo(p,end-1)) ~= sign(nablaEvo(p,end)) ...
+                && nablaEvo(p,end-1) ~= 0
+            fprintf('')
+            gradientWeights(p) = 0.5*currentGradientWeights(p);
+            fprintf('Adapting learning rate for xi%d to %.3f...\n',p,gradientWeights(p))
+        end
+    end
+end
+
+% Clip infeasible parameters ______________________________________________
+% Note: only work for constraint containing a single parameter
+function param = clip_infeasible_parameters(p,A,b)
+
+    param = p;
+
+    % check if problem is infeasible
+    if ~all(A*p<b)
+        constrIdxToClip = find(A*p>b);   
+        
+        % iterate over violated constraints
+        for i = 1:length(constrIdxToClip)
+            constrIdx = constrIdxToClip(i);
+
+            % only consider constraints containing a single parameter
+            if length(find(A(constrIdx,:))) == 1
+                paramIdxToClip = find(A(constrIdx,:));
+                param(paramIdxToClip) = sign(A(constrIdx,paramIdxToClip))*b(constrIdx) - sign(A(constrIdx,paramIdxToClip))*0.025*b(constrIdx);
+                fprintf('Clipping  parameter %d to the value %d \n',paramIdxToClip,param(paramIdxToClip))
+            end
+        end
+    end
+end
+ 
+% Wrap output _____________________________________________________________
+function out = wrap_output(exitMsg,xiStar,xiEvo,LEvo,LwoBEvo,xEvo, ...
+    nablaEvo,nablaWEvo,nIt,rebuildIdx,xiRebuildEvo)
+
+    out = struct();
+    
+    out.exitMsg     = exitMsg;
+    out.xiStar      = xiStar;
+    out.xiEvo       = xiEvo;
+    out.LEvo        = LEvo;
+    out.LwoBEvo     = LwoBEvo;
+    out.xEvo        = xEvo;
+    out.nablaEvo    = nablaEvo;
+    out.nablaWEvo   = nablaWEvo;
+    out.nIt         = nIt;
+    out.rebuildIdx  = rebuildIdx;
+    out.xiRebuildEvo = xiRebuildEvo;
+    
+    fprintf('%s\n', exitMsg);
+end
+
