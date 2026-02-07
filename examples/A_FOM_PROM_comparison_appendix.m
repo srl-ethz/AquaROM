@@ -69,10 +69,10 @@ h2 = PlotFieldonDeformedMesh_ext(nodes, elementPlot, u, 'lineWidth',0.2);
 %% APPENDIX C.1 - ROB SELECTION - ITERATIVE TESTING OF MULTIPLE CASES _____
 
 % Vector of element counts
-elements_vec = [4270,8086, 16009]; % Number of elements for each input file
-kActu_values = {[3.6, 3.0]*1e5 ...
-                [3.1, 2.6]*1e5, ...
-                [2.9, 2.5]*1e5
+elements_vec = [4270]%,8086, 16009]; % Number of elements for each input file
+kActu_values = {[8.5, 7]*1e4 ...
+%                 [3.1, 2.6]*1e5, ...
+%                 [2.9, 2.5]*1e5
                 };
             
 % Set simulation parameters
@@ -80,8 +80,8 @@ h = 0.02;
 tmax = 2.0;
 
 % Set number of VMs and if using MDs
-n_VMs = 2;      % 1 or 2
-MDs_flag = 1;   % 1 (0) for (no) MDs in ROB   
+n_VMs = 1;      % 1 or 2
+MDs_flag = 0;   % 1 (0) for (no) MDs in ROB   
 
 % Loop over each element count and each actuation value
 for elem_idx = 1:length(elements_vec)
@@ -148,12 +148,12 @@ for elem_idx = 1:length(elements_vec)
 end
 
 %% APPENDIX C.1 - ROB SELECTION - RESULTS _________________________________
-nElementsForResult = [4270, 8086, 16009]; % Number of elements for each input file
+nElementsForResult = [4270]%, 8086, 16009]; % Number of elements for each input file
 
 % Read files
 for i=1:length(nElementsForResult)
     nElements = nElementsForResult(i);
-    filename_main = sprintf('Results/Data/A_results_%del.csv', nElements);
+    filename_main = sprintf('Results/Data/A_FOM_PROM/A_results_%del.csv', nElements);
     filename_VM1_MD0 = sprintf('Results/Data/Appendix/A_results_app_%del_%dVMs_%dMDs.csv', nElements, 1, 0);
     filename_VM2_MD1 = sprintf('Results/Data/Appendix/A_results_app_%del_%dVMs_%dMDs.csv', nElements, 2, 1);
     if i==1
@@ -171,6 +171,8 @@ end
 % main: nElements, actu, max_uHead_FOM, max_uTail_FOM, max_uHead_ROM
 % VMX_MDY: nElements, actu, max_uHead_ROM,
 actuValues = [3.6, 3.0, 3.1, 2.6, 2.9, 2.5 ]*1e5;
+actuValues = [8.5, 7]*1e4;
+
 res_main = res_main(ismember(res_main(:,2), actuValues),[1,2,3,4,5]);
 res_VM1_MD0 = res_VM1_MD0(:,[1,2,3]);
 res_VM2_MD1 = res_VM2_MD1(:,[1,2,3]);
