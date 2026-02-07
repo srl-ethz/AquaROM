@@ -1,14 +1,14 @@
-% solve_EoMs_and_sensitivities
+% solve_EoMs_and_sensitivities_co
 %
 % Synthax:
-% TI_NL_PROM = solve_EoMs_and_sensitivities(V,ROM_Assembly,tailProperties,spineProperties,actuTop,actuBottom,h,tmax)
+% TI_NL_PROM = solve_EoMs_and_sensitivities_co(V,ROM_Assembly,tailProperties,spineProperties,actuTop,actuBottom,h,tmax,pActu)
 %
 % Description: Computes the solutions for eta,dot{eta}, ddot{eta} for 
 % [0,tmax] for a given PROM assembly and time step as well as the
-% corresponding sensitivities (in a combined fashion)
+% corresponding sensitivities (in a combined fashion). 
 %
-% Note: this function is specific to shape optimization only (no
-%       actuation optimization)
+% Note: this function is specific to shape and actuation optimization
+%       (co-optimization)
 %
 % INPUTS: 
 % (1) V:                    ROB   
@@ -25,14 +25,15 @@
 % (8) kActu:                multiplicative factor for the actuation forces
 % (9) h:                    time step for time integration
 % (10) tmax:                simulation for [0,tmax]
+% (11) pActu:               parameter defining the actuation signal
 %
 % OUTPUTS:
 % (1) TI_NL_PROM:           struct containing the solutions and related
 %                           information
 %     
-% Last modified: 02/09/2024, Mathieu Dubied, ETH Zurich
+% Last modified: 07/02/2026, Mathieu Dubied, ETH Zurich
 
-function TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,fIntTensors,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax)
+function TI_NL_PROM = solve_EoMs_and_sensitivities_co(V,PROM_Assembly,fIntTensors,tailProperties,spineProperties,dragProperties,actuTop,actuBottom,kActu,h,tmax,pActu)
 
     fishDim = size(PROM_Assembly.Mesh.nodes,2);
 
@@ -40,11 +41,11 @@ function TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,fIntTensors,t
     eta0 = zeros(size(V,2),1);
     etad0 = zeros(size(V,2),1);
     etadd0 = zeros(size(V,2),1);
-
+    
     U = PROM_Assembly.U;
-    s0 = zeros(size(V,2),size(U,2));
-    sd0 = zeros(size(V,2),size(U,2));
-    sdd0 = zeros(size(V,2),size(U,2));
+    s0 = zeros(size(V,2),size(U,2)+length(pActu));
+    sd0 = zeros(size(V,2),size(U,2)+length(pActu));
+    sdd0 = zeros(size(V,2),size(U,2)+length(pActu));
 
     % FORCES for EoMS: ACTUATION, REACTIVE FORCE, DRAG FORCE ______________
     % actuation force
@@ -53,11 +54,10 @@ function TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,fIntTensors,t
     B2T = actuTop.B2;
     B2B = actuBottom.B2;
     
-    actuSignalT = @(t) kActu/2*(-0.2*sin(t*2*pi));    % to change below as well if needed
-    actuSignalB = @(t) kActu/2*(0.2*sin(t*2*pi));
+    actuSignalT = @(t) actuation_signal_1(kActu,t,pActu);    
+    actuSignalB = @(t) -actuation_signal_1(kActu,t,pActu);
     
-    fActu = @(t,q)  kActu/2*(-0.2*sin(t*2*pi))*(B1T+B2T*q) + ...
-                    kActu/2*(0.2*sin(t*2*pi))*(B1B+B2B*q);
+    fActu = @(t,q) actuation_force_1(kActu,t,q,B1T,B2T, B1B,B2B,pActu);
 
     % tail pressure force properties
     A = tailProperties.A;
@@ -115,12 +115,17 @@ function TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,fIntTensors,t
     fDrag = @(qd) double(ttv(ttv(T3,qd,3),qd,2));
 
     % FORCES DERIVATIVES FOR SENSITIVITY ANALYSIS _________________________
+    % The derivative of a single force is needed for the sensitivity with
+    % respect to the actuation signal. Only the partial derivatives of the
+    % actuation forces are needed.
+
     % internal forces
     pd_fint = @(eta)DpROM_derivatives_lightweight(eta,fIntTensors);
 
     % actuation forces
     pd_actuTop = @(a)PROM_actu_derivatives(actuTop,a);
     pd_actuBottom = @(a)PROM_actu_derivatives(actuBottom,a);
+    pd_actu = @(t,q,p)derivatives_actuation_force_1(kActu,t,q,B1T,B2T,B1B,B2B,pActu);
 
     % tail pressure force
     xi=zeros(size(PROM_Assembly.U,2),1);
@@ -146,7 +151,6 @@ function TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,fIntTensors,t
     dragTensors = dragProperties.tensors;
     pd_drag = @(etad) PROM_drag_derivatives_lightweight(etad,dragTensors);
 
-
     % NONLINEAR TIME INTEGRATION __________________________________________
     
     % instantiate object for nonlinear time integration
@@ -157,11 +161,11 @@ function TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,fIntTensors,t
         t,PROM_Assembly,fIntTensors,fActu,fTail,fSpine,fDrag,actuTop,actuBottom,actuSignalT,actuSignalB,tailProperties,spineProperties,dragProperties,R,x0);
 
     % residual function handle
-    Residual_sens = @(s,sd,sdd,etaSol,etadSol,etaddSol,drdqdd, drdqd, drdq,t)residual_linear_sens_combined(s,sd,sdd,t, ...
+    Residual_sens = @(s,sd,sdd,etaSol,etadSol,etaddSol,drdqdd, drdqd, drdq,t)residual_linear_sens_combined_co(s,sd,sdd,t, ...
         etaSol,etadSol,etaddSol, drdqdd, drdqd, drdq,...
         pd_fint,pd_tail,pd_spine,pd_drag,pd_actuTop,pd_actuBottom, ...
-        actuSignalT,actuSignalB);
-
+        actuSignalT,actuSignalB,pd_actu,pActu);
+    
     % time integration 
     TI_NL_PROM.Integrate(eta0,etad0,etadd0,tmax,Residual_NL_red, ...
         'ResidualSens',Residual_sens,'s0',s0,'sd0',sd0,'sdd0',sdd0);
