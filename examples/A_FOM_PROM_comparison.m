@@ -32,46 +32,33 @@ f_spine = fig_spine(elements, nodes, 'cyan', 'r', [1 2 16 8]);
 
 % FIGURE 6 of the paper: muscle placement and 1st VM
 f_A1 = fig_muscle_placement_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC);
-fig_filename = sprintf('Setup/Figures/06_A_muscles_placement_VM_%del_3.pdf', Mesh_ROM.nElements);
+fig_filename = sprintf('Setup/Figures/06_A_muscles_placement_VM_%del.pdf', Mesh_ROM.nElements);
 exportgraphics(f_A1, fig_filename, 'Resolution', 1400);
 
 
 %% ITERATIVE TESTING OF MULTIPLE CASES ____________________________________
 
+SINGLE_FIGURE = 0;  % when re-running to get a figure with the rectangle as in the paper
+
 % Vector of element counts
-elements_vec = [24822]; % Number of elements for each input file 1272, 4270, 8086,16009, , 24822
-kActu_values = {[5.5, 4.9, 4.2, 3.4, 2.5, 1.5, 0.5]*1e5, ...
-                [4.2, 3.6, 3.0, 2.4, 1.8, 1.2, 0.6]*1e5 ...
-                [3.1, 2.6, 2.1, 1.6, 1.1, 0.6, 0.1]*1e5, ...
-                [2.9, 2.5, 2.0, 1.6, 1.1, 0.6, 0.1 ]*1e5, ...s
-                [2.25, 2.0, 1.7, 1.3, 1.0, 0.7, 0.3]*1e5
+if SINGLE_FIGURE == 1
+    elements_vec = [8086]; 
+
+    kActu_values = {          
+                    [8.5]*1e4, ...  
+                    };           
+else
+    elements_vec = [1272, 4270, 8086,16009, 24822]; % Number of elements for each input file 1272, 4270, 8086,16009,24822
+                
+    kActu_values = {
+                [14.5, 12, 10, 8, 6, 3]*1e4, ...
+                [10, 8.5, 7, 5.5, 4, 2.5]*1e4, ... 
+                [8.5, 7, 5.5, 4.2, 2.9, 1.9 ]*1e4, ...  
+                [7.4, 6.6, 5.5, 4.5, 3.5, 2.5]*1e4, ... %, 1.5
+                [6.2, 5.0, 4.3, 3.6, 3.0, 2.2]*1e4  % , 1.6
                 };
-            
-kActu_values = {
-                [15.0, 12.5, 10, 7.5, 5, 2.5, 1.0, 0.5]*1e4, ... 
-                [12, 10.1, 8.3, 6.5, 4.6, 2.7, 1.0, 0.1]*1e4, ...
-                [10, 8.9, 7.8, 6.7, 5.6, 4.5, 3.4, 2.3]*1e4, ...
-                [8.3, 7.4, 6.5, 5.6, 4.7, 3.8, 2.9, 2.0]*1e4, ...
-%                 [6.3, 0.67, 0.57, 0.43, 0.33, 0.23, 0.10]*1e4
-                };
-            
-kActu_values = {    % 0.95,0.35
-%                 [15, 12.5, 10, 7.5, 5, 2.5, 1.0, 0.5]*1e4, ...
-%                 [12.0, 10.0, 8, 5, 3,1, 0.5, 0.2]*1e4, ... 
-                [9.5, 7.0, 5.0, 3.0, 1.0, 0.5,0.2,0.1]*1e4, ... 1.95
-%                 [8.8, 6.5, 5.0, 3.0, 1, 0.4, 0.1, 0.05 ]*1e4 %, ... 8.5 gives 1.86
-%                 [6.3, 0.67, 0.57, 0.43, 0.33, 0.23, 0.10]*1e4
-                };
-            
-            
-kActu_values = {
-%                 [14.5, 12, 10, 8, 6, 3]*1e4, ...
-%                 [10, 8.5, 7, 5.5, 4, 2.5]*1e4, ... 
-%                 [8.5, 7, 5.5, 4.2, 2.9, 1.9 ]*1e4, ...  
-%                 [7.4]*1e4;%, 6.6, 5.5, 4.5, 3.5, 2.5, 1.5]*1e4 %, ... 7.2
-                [6.2]*1e4%[3.6, 3.0, 2.2, 1.6, 5.0, 4.3 ]*1e4  5.5. 6.0 ok
-                };
-            
+end
+    
 % Set simulation parameters
 h = 0.02;
 tmax = 2.0;
@@ -270,16 +257,22 @@ for elem_idx = 1:length(elements_vec)
     end
     
     % Save summary table for each mesh
-    results_table_filename = sprintf('Results/Data/A_FOM_PROM/A_results_%del_4.csv', num_elements);
-    csvwrite(results_table_filename,results_matrix);
+    if SINGLE_FIGURE == 0
+        results_table_filename = sprintf('Results/Data/A_FOM_PROM/A_results_%del.csv', num_elements);
+        csvwrite(results_table_filename,results_matrix);
+    end
 end
 
-%% FIGURE
+
+%% FIGURE TRAJECTORY WITH RECTANGLE (SINGLE FIGURE) _______________________
 [uHead_sol, uTail_sol] = wrap_head_tail_results(uHead_FOM, uHead_ROM, ...
     uHead_PROM_3, uHead_PROM_5, uHead_PROM_8, uTail_FOM, uTail_ROM, ...
     uTail_PROM_3, uTail_PROM_5, uTail_PROM_8);
 fig = fig_head_tail_motion(uHead_sol, uTail_sol, timePlot, Lx, Ly, ...
-    [0.875 0.839 0.04 0.07]);
+    [0.865 0.872 0.04 0.07]);
+fig_filename = sprintf('Results/Figures/A_FOM_PROM/Trajectories/A_Displacement_Comparison_%del_kActu_%.3f_rectangle.pdf', num_elements, kActu);
+exportgraphics(fig, fig_filename, 'Resolution', 600);
+
 
 %% RESULTS ANALYSIS AND PLOTS _____________________________________________
 
@@ -343,7 +336,7 @@ set(gca, 'YScale', 'log')
 yticks([100,1000]);
 ylTop = ylabel('Computation effort [s]');
 lgd = legend([p1,p2,p3,p4,p5,p6],{'FOM', 'ROM',' ', 'PROM 3p', 'PROM 5p', 'PROM 8p'},'Location','northwest', 'NumColumns',2, 'interpreter', 'latex');
-lgd.Position(2) = lgd.Position(2) + 0.075; 
+lgd.Position(2) = lgd.Position(2) + 0.085; 
 lgd.Position(1) = lgd.Position(1) + lgd_x_shift; 
 annotation('textbox', [0.125 0.862 0.07 0.1], ...
     'String', '(A)', ...
@@ -405,7 +398,7 @@ else
     set(ylMiddle,'Pos',[ylBottom.Position(1) ylMiddle.Position(2) ylMiddle.Position(3)]);
 end
 
-fig_filename = 'Results/Figures/A_FOM_PROM/08_A_results_computational_time_04_02.pdf';
+fig_filename = 'Results/Figures/A_FOM_PROM/08_A_results_computational_time.pdf';
 exportgraphics(f, fig_filename, 'Resolution', 600);
 
 %% Plot accuracy as heat map
@@ -421,12 +414,19 @@ exportgraphics(f, fig_filename, 'Resolution', 600);
 %  22-24    timePROMBuild_5, timePROMSolve_5, timePROM_5, ...
 %  25-27    timePROMBuild_8, timePROMSolve_8, timePROM_8];
 
+ABSOLUTE_ERROR = 1;   % 0 for relative error
+
 f = figure('units','centimeters','position',[3 3 9 7]);
 hold on
 X = resultSummary(:, 1);            % nr. elements
 Y = resultSummary(:, 4);            % max vertical displacement
-values = (resultSummary(:, 5)-resultSummary(:, 3))./(...
+
+if ABSOLUTE_ERROR == 1
+    values = resultSummary(:, 5)-resultSummary(:, 3);  % absolute error
+else
+    values = (resultSummary(:, 5)-resultSummary(:, 3))./(...
     resultSummary(:,3))*100;  % relative error
+end
 
 % Number of grid points
 gridres = 500 ;
@@ -464,23 +464,31 @@ annotation('line', [cbar_pos(1), cbar_pos(1) + cbar_pos(3)], [y_zero, y_zero], '
 xlabel('Number of finite elements')
 ylabel('Tail $y$-oscillation amplitude [cm]')
 xlim([650,24822])
-ylim([0.0,2.6])
+ylim([0.4,2.6])
 % title('Relative error in $x$-position after $t=2$s', 'interpreter', 'latex')
 ax = gca;
 ax.TitleHorizontalAlignment = 'left';
 
-cb.Label.String = '[$x$(ROM)  - $x$(FOM)] / $x$(FOM) [\%]';
+if ABSOLUTE_ERROR == 1
+    cb.Label.String = '$x$(ROM)  - $x$(FOM) [cm]';
+else
+    cb.Label.String = '[$x$(ROM)  - $x$(FOM)] / $x$(FOM) [\%]';
+end
 cb.Label.Interpreter = 'latex'; % If you want LaTeX formatting
 
 % add rectangle around one of the crosses
-annotation('textbox', [0.29 0.733 0.05 0.08],...
+annotation('textbox', [0.29 0.823 0.05 0.08],...
     'BackgroundColor', 'none', ...
     'EdgeColor', 'black',...
     'LineWidth', 1.5)
 
 hold off
 
-fig_filename = 'Results/Figures/A_FOM_PROM/09_A_results_rel_error_forward.pdf';
+if ABSOLUTE_ERROR == 1
+    fig_filename = 'Results/Figures/A_FOM_PROM/09_A_results_abs_error_forward.pdf';
+else
+    fig_filename = 'Results/Figures/A_FOM_PROM/09_A_results_rel_error_forward.pdf';
+end
 exportgraphics(f, fig_filename, 'Resolution', 600);
 
 

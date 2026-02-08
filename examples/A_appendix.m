@@ -1,11 +1,11 @@
 % ------------------------------------------------------------------------ 
-% A_FOM_PROM_compariso_appendix.m
+% A_appendix.m
 %
 % Description: Accuracy and computational speed comparison between the FOM
 % and the (P)ROM formulations. Additional results presented in the
 % appendix of the paper.
 %
-% Last modified: 06/02/2026, Mathieu Dubied, ETH Zurich
+% Last modified: 08/02/2026, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
 clear; 
 close all; 
@@ -19,9 +19,8 @@ load('parameters.mat')
 
 %% EXTRA RESULT - MAX STRAIN COMPUTATION (StVK MODEL VALIDITY)_____________
 num_elements = 8086;
-kActu = 7.4*1e4;%0.8*1e5;
-% propRigid = 0.35;
-% muscleBoundaries = [0.95,0.35]
+kActu = 7.0*1e4;
+
 filename = strcat('InputFiles/3d_rectangle_', num2str(num_elements), 'el');  % Construct filena
 [Mesh_FOM, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
 % muscleBoundaries = [0.9, 0.25]
@@ -69,10 +68,10 @@ h2 = PlotFieldonDeformedMesh_ext(nodes, elementPlot, u, 'lineWidth',0.2);
 %% APPENDIX C.1 - ROB SELECTION - ITERATIVE TESTING OF MULTIPLE CASES _____
 
 % Vector of element counts
-elements_vec = [4270]%,8086, 16009]; % Number of elements for each input file
+elements_vec = [4270,8086, 16009]; % Number of elements for each input file
 kActu_values = {[8.5, 7]*1e4 ...
-%                 [3.1, 2.6]*1e5, ...
-%                 [2.9, 2.5]*1e5
+                [8.5, 7]*1e4, ...
+                [6.6, 5.5]*1e4
                 };
             
 % Set simulation parameters
@@ -143,19 +142,19 @@ for elem_idx = 1:length(elements_vec)
     end
     
     % Save summary table for each mesh
-    results_table_filename = sprintf('Results/Data/Appendix/A_results_app_%del_%dVMs_%dMDs.csv', num_elements, n_VMs, MDs_flag);
+    results_table_filename = sprintf('Results/Data/Appendix/ROB_selection/A_results_app_%del_%dVMs_%dMDs.csv', num_elements, n_VMs, MDs_flag);
     csvwrite(results_table_filename,results_matrix);
 end
 
-%% APPENDIX C.1 - ROB SELECTION - RESULTS _________________________________
-nElementsForResult = [4270]%, 8086, 16009]; % Number of elements for each input file
+%% APPENDIX - ROB SELECTION - RESULTS _____________________________________
+nElementsForResult = [4270, 8086, 16009]; % Number of elements for each input file
 
 % Read files
 for i=1:length(nElementsForResult)
     nElements = nElementsForResult(i);
     filename_main = sprintf('Results/Data/A_FOM_PROM/A_results_%del.csv', nElements);
-    filename_VM1_MD0 = sprintf('Results/Data/Appendix/A_results_app_%del_%dVMs_%dMDs.csv', nElements, 1, 0);
-    filename_VM2_MD1 = sprintf('Results/Data/Appendix/A_results_app_%del_%dVMs_%dMDs.csv', nElements, 2, 1);
+    filename_VM1_MD0 = sprintf('Results/Data/Appendix/ROB_selection/A_results_app_%del_%dVMs_%dMDs.csv', nElements, 1, 0);
+    filename_VM2_MD1 = sprintf('Results/Data/Appendix/ROB_selection/A_results_app_%del_%dVMs_%dMDs.csv', nElements, 2, 1);
     if i==1
         res_main = readmatrix(filename_main);
         res_VM1_MD0 = readmatrix(filename_VM1_MD0);
@@ -170,18 +169,25 @@ end
 % Select and reorder rows
 % main: nElements, actu, max_uHead_FOM, max_uTail_FOM, max_uHead_ROM
 % VMX_MDY: nElements, actu, max_uHead_ROM,
-actuValues = [3.6, 3.0, 3.1, 2.6, 2.9, 2.5 ]*1e5;
-actuValues = [8.5, 7]*1e4;
+validPairs = [  4270 8.5e4
+                4270 7.0e4
+                8086 8.5e4
+                8086 7.0e4
+                16009 6.6e4
+                16009 5.5e4];
 
-res_main = res_main(ismember(res_main(:,2), actuValues),[1,2,3,4,5]);
+mask = ismember(res_main(:,1:2), validPairs, 'rows');
+res_main = res_main(mask, [1,2,3,4,5]);
 res_VM1_MD0 = res_VM1_MD0(:,[1,2,3]);
 res_VM2_MD1 = res_VM2_MD1(:,[1,2,3]);
 
 key_main = res_main(:,1:2);
 [~, idx1] = ismember(key_main, res_VM1_MD0(:,1:2), 'rows');
-res_VM1_MD0 = res_VM1_MD0(idx1, :);
+mask = idx1 > 0;
+res_VM1_MD0 = res_VM1_MD0(idx1(mask), :);
 [~, idx2] = ismember(key_main, res_VM2_MD1(:,1:2), 'rows');
-res_VM2_MD1 = res_VM2_MD1(idx2, :);
+mask = idx2 > 0;
+res_VM2_MD1 = res_VM2_MD1(idx2(mask), :);
 
 % Compute differences
 res_main = [res_main,(res_main(:, 5)-res_main(:, 3))./(res_main(:,3))*100] 
@@ -197,7 +203,7 @@ tab_VM2_MD1 = [res_main(:,[1,4,6]), res_VM2_MD1(:,end)];
 colNames = {'nEl','y-oscillation','rel. error main [%]',' rel. error VM2 MD1 [%]'};
 T = array2table(tab_VM2_MD1, 'VariableNames', colNames)
 
-%%  APPENDIX C.1 - ROB SELECTION - FIGURE 2ND VIBRATION MODE ______________                                                  
+%%  APPENDIX - ROB SELECTION - FIGURE 2ND VIBRATION MODE __________________                                                  
 num_elements_fig = 8086;
 filename = strcat('InputFiles/3d_rectangle_', num2str(num_elements_fig), 'el');
 [Mesh_ROM, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
@@ -209,11 +215,11 @@ end
 
 % FIGURE IN APPENDIX of the paper: 2nd VM
 f = fig_VM(Mesh_ROM, nodes, elements,muscleBoundaries, esetBC, 2);
-fig_filename = sprintf('Setup/Figures/Appendix/VM_2_%del.pdf', Mesh_ROM.nElements);
+fig_filename = sprintf('Setup/Figures/Appendix/FOMVM_2_%del.pdf', Mesh_ROM.nElements);
 exportgraphics(f, fig_filename, 'Resolution', 1400);
 
 
-%% APPENDIX C.2 - CONVERGENCE ANALYSIS OF PROM ____________________________
+%% APPENDIX - CONVERGENCE ANALYSIS OF PROM ________________________________
 % Set simulation parameters
 hVec = [0.02, 0.01, 0.005];
 tmax = 2.0;
@@ -297,7 +303,7 @@ for h_idx = 1:length(hVec)
     save(results_filename, 'out');
 end
 
-%% APPENDIX C.2 - CONVERGENCE ANALYSIS OF PROM - RESULTS __________________
+%% APPENDIX - CONVERGENCE ANALYSIS OF PROM - RESULTS ______________________
 
 % Load results
 filename = sprintf('Results/Data/Appendix/A_convergence_h_0.020.mat');
