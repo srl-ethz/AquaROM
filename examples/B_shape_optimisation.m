@@ -84,6 +84,21 @@ A = [1 0 0 ;
 b = [0.5;0.5;0.5;0.5;0.15;0.15];
 barrierParam = 10*ones(1,length(b));
 
+PARAM_INIT = 2;
+if PARAM_INIT == 1
+    paramInit = [-0.01;0.06; -0.13];
+    filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit1__%d_el_kActu_%.3f.mat', ...
+                    expName1, n_elements, kActu);
+elseif PARAM_INIT == 2
+    paramInit = [-0.16;-0.37;-0.09];
+    filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit2__%d_el_kActu_%.3f.mat', ...
+                    expName1, n_elements, kActu);
+else
+    paramInit = [];
+    filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', ...
+                    expName1, n_elements, kActu);
+end
+
 % Optimisation
 tStart = tic;
 out1 = optimise_shape_3D(myElementConstructor,nsetBC, ...
@@ -98,8 +113,8 @@ out1 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'nRebuild',6, ...
     'rebuildThreshold',0.15,...
     'wSize', 5, ...
-    'USEJULIA',1);% ...
-    %'paramInit', [0.4;0.2;0.1]);
+    'USEJULIA',1, ...
+    'paramInit', paramInit);
 out1.tOpti = toc(tStart)/60;   % unit is minute
 out1.tPerIt = out1.tOpti/out1.nIt;
 
@@ -109,8 +124,6 @@ fprintf('Number of built models and solved EoMs: %3d\n',out1.nIt)
 fprintf('Computation time per models/EoMs: %.2f\n',out1.tPerIt)
 
 % Save results
-filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', ...
-                    expName1, n_elements, kActu);
 save(filename,'out1')
 
 %% OPTIMISATION SO2 _______________________________________________________
@@ -122,28 +135,27 @@ A = zeros(2 * nParam, nParam);
 for i = 1:nParam
     A(2*i-1:2*i,i) =[1;-1];
 end
-% yTotConstr = [0 0 1 0 1;0 0  -1 0 -1;
-%               0 0 0 1 1;0 0  0 -1 -1];
-          
-% A = [A;yTotConstr];
-% b = [0.5;0.5;
-%     0.5;0.5;
-%     0.4;0.4;
-%     0.5;0.5;
-%     0.5;0.5;   
-%     0.8;0.8;
-%     0.8;0.8];
 b = [0.5;0.5;
     0.5;0.5;
     0.4;0.4;
     0.5;0.5;
     0.5;0.5];
-% b = [0.5;0.5;
-%     0.5;0.5;
-%     0.15;0.15;
-%     0.3;0.3;
-%     0.3;0.3];
 barrierParam = 2*ones(1,length(b));
+
+PARAM_INIT = 2;
+if PARAM_INIT == 1
+    paramInit = [-0.43;0.04; -0.17;0.27;-0.43];
+    filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit1__%d_el_kActu_%.3f.mat', ...
+                    expName2, n_elements, kActu);
+elseif PARAM_INIT == 2
+    paramInit = [-0.29;0.46;-0.16;0.33;0.19];
+    filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit2__%d_el_kActu_%.3f.mat', ...
+                    expName2, n_elements, kActu);
+else
+    paramInit = [];
+    filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', ...
+                    expName2, n_elements, kActu); 
+end
 
 % Optimisation
 tStart = tic;
@@ -159,7 +171,8 @@ out2 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'nRebuild',5, ...
     'rebuildThreshold',0.15,...
     'wSize', 5, ...
-    'USEJULIA',1);
+    'USEJULIA',1, ...
+    'paramInit', paramInit);
 out2.tOpti = toc(tStart)/60;   % unit is minute
 out2.tPerIt = out2.tOpti/out2.nIt;
 
@@ -169,8 +182,6 @@ fprintf('Number of built models and solved EoMs: %3d\n',out2.nIt)
 fprintf('Computation time per models/EoMs: %.2f\n',out2.tPerIt)
 
 % Save results
-filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', ...
-                    expName2, n_elements, kActu);
 save(filename,'out2')
 
 %% OPTIMISATION SO3 _______________________________________________________
@@ -193,8 +204,22 @@ b = [0.5;0.5;
     0.25;0.25;
     0.25;0.25;
     0.2;0.01];
-
 barrierParam = 2*ones(1,length(b)); % 3 for 8086, 1  for 16009
+
+PARAM_INIT = 2;
+if PARAM_INIT == 1
+    paramInit = [-0.49; 0.09; -0.23;0.02;-0.16;0.1;-0.15;0.14];
+    filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit1__%d_el_kActu_%.3f.mat', ...
+                    expName3, n_elements, kActu);
+elseif PARAM_INIT == 2
+    paramInit = [-0.06;-0.13;0.0;-0.29;-0.36;-0.22;-0.01;0.11];
+    filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit2__%d_el_kActu_%.3f.mat', ...
+                    expName3, n_elements, kActu);
+else
+    paramInit = [];
+    filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', ...
+                    expName3, n_elements, kActu);
+end
 
 % Optimisation
 tStart = tic;
@@ -202,7 +227,7 @@ out3 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     nodes,elements,muscleBoundaries,kActu,U_3,h,tmax,A,b, ...
     'FORMULATION',FORMULATION, ...
     'VOLUME',VOLUME, ...
-    'maxIteration',40, ...
+    'maxIteration',50, ...
     'convCrit',0.015, ...    % set to 0.015 for 8086el, 0.015 for 16609
     'convCritCost',5.0, ...% set to 5.0 for 8086, 8.0 for 16609
     'barrierParam',barrierParam, ...
@@ -210,7 +235,8 @@ out3 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'nRebuild',5, ...
     'rebuildThreshold',0.15, ...
     'wSize', 5, ...
-    'USEJULIA',1);
+    'USEJULIA',1, ...
+    'paramInit', paramInit);
 out3.tOpti = toc(tStart)/60;   % unit is minute
 out3.tPerIt = out3.tOpti/out3.nIt;
 
@@ -220,8 +246,6 @@ fprintf('Number of built models and solved EoMs: %3d\n',out3.nIt)
 fprintf('Computation time per models/EoMs: %.2f\n',out3.tPerIt)
 
 % Save results
-filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', ...
-                    expName3, n_elements, kActu);
 save(filename,'out3')
 
 %% RETRIEVE RESULTS _______________________________________________________
