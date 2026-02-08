@@ -223,8 +223,8 @@ exportgraphics(f, fig_filename, 'Resolution', 1400);
 % Set simulation parameters
 hVec = [0.02, 0.01, 0.005];
 tmax = 2.0;
-kActu = 12*1e4;
-num_elements = 1272;
+kActu = 7.0*1e4;
+num_elements = 8086;
 
 % Loop over each element count and each actuation value
 for h_idx = 1:length(hVec)
@@ -299,33 +299,31 @@ for h_idx = 1:length(hVec)
     out.epsilonVec = TI_NL_PROM.Solution.epsilonVec;
     
     % Save results
-    results_filename = sprintf('Results/Data/Appendix/A_convergence_h_%.3f.mat', h);
+    results_filename = sprintf('Results/Data/Appendix/Convergence/A_convergence_h_%.3f.mat', h);
     save(results_filename, 'out');
 end
 
 %% APPENDIX - CONVERGENCE ANALYSIS OF PROM - RESULTS ______________________
 
 % Load results
-filename = sprintf('Results/Data/Appendix/A_convergence_h_0.020.mat');
+filename = sprintf('Results/Data/Appendix/Convergence/A_convergence_h_0.020.mat');
 load(filename);
 out1 = out;
-filename = sprintf('Results/Data/Appendix/A_convergence_h_0.010.mat');
+filename = sprintf('Results/Data/Appendix/Convergence/A_convergence_h_0.010.mat');
 load(filename);
 out2 = out;
-filename = sprintf('Results/Data/Appendix/A_convergence_h_0.005.mat');
+filename = sprintf('Results/Data/Appendix/Convergence/A_convergence_h_0.005.mat');
 load(filename);
 out3 = out;
 
-% Plot
-figure
-hold on
-h1 = plot(out1.itVec, 'o');
-h2 = plot(out2.itVec, 'o');
-h3 = plot(out3.itVec, 'o');
-ylim([0,5])
-
 %%
-u1 = out1.uHead(1,:); 
+% 1) Plot swimming dynamics
+uHead_h1 = out1.uHead(1,:); 
+uHead_h2 = out2.uHead(1,:);
+uHead_h3 = out3.uHead(1,:);
+uTail_h1 = out1.uTail(2,:); 
+uTail_h2 = out2.uTail(2,:);
+uTail_h3 = out3.uTail(2,:);
 n1 = numel(u1);
 t1 = (0:n1-1) * out1.h;
 u2 = out2.uHead(1,:); 
@@ -335,134 +333,38 @@ u3 = out3.uHead(1,:);
 n3 = numel(u3);
 t3 = (0:n3-1) * out3.h;
 
-figure
-hold on
-plot(t1, u1)
-plot(t2, u2)
-plot(t3, u3)
-xlabel('Time')
-ylabel('uHead(1,:)')
-grid on
+fig = fig_trajectory_time_step_refinement(t1,t2,t3, ...
+                                uHead_h1, uHead_h2, uHead_h3, ...
+                                uTail_h1, uTail_h2, uTail_h3, ...
+                                Lx, Ly, [3 3 9 7.0]);
+fig_filename = sprintf('Results/Figures/Appendix/Convergence/A_convergence_trajectories.pdf');
+exportgraphics(fig, fig_filename, 'Resolution', 600);                           
 
-%%
-u2_on_t1 = u2(1:2:end);
-u3_on_t1 = u3(1:4:end);
-
-% differences
-diff1ref = u1 - u2_on_t1;
-diff2ref = u1 - u3_on_t1;
-figure
-hold on
-plot(t1, diff1ref, 'DisplayName', 'out1 - out2')
-plot(t1, diff2ref, 'DisplayName', 'out1 - out3')
-xlabel('Time')
-ylabel('Difference')
-legend
-grid on
-
-err_Linf13 = max(abs(u1 - u3_on_t1))
-err_Linf12 = max(abs(u1 - u2_on_t1))
-err_Linf23 = max(abs(u2_on_t1 - u3_on_t1))
-
-%%
-
-u1 = out1.uTail(2,:); 
-n1 = numel(u1);
-t1 = (0:n1-1) * out1.h;
-u2 = out2.uTail(2,:); 
-n2 = numel(u2);
-t2 = (0:n2-1) * out2.h;
-u3 = out3.uTail(2,:); 
-n3 = numel(u3);
-t3 = (0:n3-1) * out3.h;
-
-figure
-hold on
-plot(t1, u1)
-plot(t2, u2)
-plot(t3, u3)
-xlabel('Time')
-ylabel('uHead(1,:)')
-grid on
+% 2) Focus on head position: successive errors and refinement ratio
+E_12 = norm(uHead_h1 - uHead_h2(1:2:end))
+E_23 = norm(uHead_h2 - uHead_h3(1:2:end))
+ref_ratio = E_12/E_23
 
 
-%%
-u2_on_t1 = u2(1:2:end);
-u3_on_t1 = u3(1:4:end);
+% 3) Sensitivities
+S1 = out1.S;
+S2 = out2.S;
+S3 = out3.S;
 
-% differences
-diff1ref = u1 - u2_on_t1;
-diff2ref = u1 - u3_on_t1;
-figure
-hold on
-plot(t1, diff1ref, 'DisplayName', 'out1 - out2')
-plot(t1, diff2ref, 'DisplayName', 'out1 - out3')
-xlabel('Time')
-ylabel('Difference')
-legend
-grid on
+% Compute Frobenius norm at each time step
+E_12_vec = [];
+E_23_vec = [];
 
-err_Linf13 = max(abs(u1 - u3_on_t1))
-
-%%
-% S1: 6x3xN1, S2: 6x3xN2, S3: 6x3xN3
-S1 = out1.S(:,:,2:end);   % <-- adjust field name
-S2 = out2.S(:,:,2:end);
-Sref = out3.S(:,:,3:end);
-
-n1 = size(S1,3);
-
-S2_on_t1 = zeros(6,3,n1);
-Sref_on_t1 = zeros(6,3,n1);
-
-for i = 1:6
-    for j = 1:3
-        S2_on_t1(i,j,:) = S2(i,j,1:2:end);
-        Sref_on_t1(i,j,:) = Sref(i,j,1:4:end);
-    end
+for i=1:length(S1(1,1,:))
+    E_12_vec = [E_12_vec, norm(S1(:,:,i) - S2(:,:,2*i-1), 'fro')];
 end
 
-
-diff1ref = S1 - S2_on_t1;
-diff2ref = S2_on_t1 - Sref_on_t1;
-
-err12_t = zeros(1,n1);
-err13_t = zeros(1,n1);
-
-for k = 1:n1
-    err12_t(k) = norm(diff1ref(:,:,k), 'fro');   % matrix norm at time t1(k)
-    err13_t(k) = norm(diff2ref(:,:,k), 'fro');
+for i=1:length(S2(1,1,:))
+    E_23_vec = [E_23_vec, norm(S2(:,:,i) - S3(:,:,2*i-1), 'fro')];
 end
 
-figure
-hold on
-plot(t1, err12_t, 'DisplayName', '||S1 - S2||_F')
-plot(t1, err13_t, 'DisplayName', '||S1 - S3||_F')
-xlabel('Time')
-ylabel('Sensitivity difference (Frobenius norm)')
-legend
-grid on
-
-% L_infinity in time (max over time)
-err12_Linf = max(err12_t);
-err13_Linf = max(err13_t);
-
-% Discrete L2 in time (approx integral)
-err12_L2 = sqrt(sum(err12_t.^2) * out1.h);
-err13_L2 = sqrt(sum(err13_t.^2) * out1.h);
-
-% Relative versions (normalize by sensitivity magnitude on t1)
-mag1_t = zeros(1,n1);
-for k = 1:n1
-    mag1_t(k) = norm(S1(:,:,k), 'fro');
-end
-rel12_t = err12_t ./ max(mag1_t, eps);
-rel13_t = err13_t ./ max(mag1_t, eps);
-
-rel12_Linf = max(rel12_t);
-rel13_Linf = max(rel13_t);
-
-
-
-
+% Compute refinement ratio 
+E_12 = norm(E_12_vec)
+E_23 = norm(E_23_vec)
+ref_ratio = E_12/E_23
 

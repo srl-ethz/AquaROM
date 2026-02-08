@@ -4,7 +4,7 @@
 % Description: 3D shape optimisation of a fish, to obtain best swimming
 % performance.
 % 
-% Last modified: 04/02/2026, Mathieu Dubied, ETH Zurich
+% Last modified: 08/02/2026, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
 clear; 
 close all; 
@@ -68,8 +68,7 @@ set(f1,'Units','centimeters');
 %% OPTIMIZATION PARAMETERS
 h = 0.02;
 tmax = 2.0;
-kActu = 3.1*1e5;    % multiplicative factor for the actuation forces (8086 elements)
-kActu = 6.0*1e4;   %7.4
+kActu = 6.0*1e4;    % multiplicative factor for the actuation forces (8086 elements)
 % kActu = 2.8*1e5;       % value for 16009 elements
 
 %% OPTIMISATION SO1 _______________________________________________________
@@ -118,7 +117,6 @@ save(filename,'out1')
 
 % Preparation (shape variation and opt. constraints)
 U_2 = [z_tail,z_head,y_linLongTail,y_head,y_ellipseFish];
-% U_2 = [z_tail,z_head,y_thinFish,y_head,y_ellipseFish];
 nParam = 5;
 A = zeros(2 * nParam, nParam);
 for i = 1:nParam
@@ -181,8 +179,6 @@ save(filename,'out2')
 U_3 = [z_tail,z_head,...
     y_linLongTail,y_head,y_ellipseFish,...
     z_smallFish, z_notch, xz_concaveTail];
-% U_3 = [z_tail,z_head,y_thinFish,y_head,y_ellipseFish,y_linLongTail,z_notch,xz_concaveTail];
-
 
 nParam = 8;
 A = zeros(2 * nParam, nParam);
@@ -193,18 +189,10 @@ b = [0.5;0.5;
     0.5;0.5;
     0.3;0.3;
     0.4;0.4;
-    0.3;0.3;
-    0.2;0.2;
-    0.2;0.2;
+    0.4;0.4;
+    0.25;0.25;
+    0.25;0.25;
     0.2;0.01];
-% b = [0.5;0.5;
-%     0.5;0.5;
-%     0.35;0.35;  
-%     0.3;0.3;
-%     0.4;0.4;    
-%     0.35;0.35;
-%     0.3;0.3;
-%     0.2; 0.01];  % concave tail only in one direction 
 
 barrierParam = 2*ones(1,length(b)); % 3 for 8086, 1  for 16009
 
@@ -282,8 +270,8 @@ view(ax2,[23.28863587057058,35.063216347984103])
 
 axis([ax1 ax2],[-0.23 0 -0.02 0.02 -0.1 0.1])
 
-fig_title = sprintf('Results/Figures/SO%d_opt_shape_%d_el_kActu_%.3f', SOIdx, n_elements, kActu);
-% exportgraphics(f_opt_shape,strcat(fig_title,'.pdf'),'Resolution',1200)
+fig_title = sprintf('Results/Figures/B_shape_optimization/SO%d_opt_shape_%d_el_kActu_%.3f', SOIdx, n_elements, kActu);
+exportgraphics(f_opt_shape,strcat(fig_title,'.pdf'),'Resolution',1200)
 
 %% PRINT RESULTS AND PERFORMANCE STATS ____________________________________
 SOIdx = 3;
@@ -336,23 +324,6 @@ xlabel('Iterations')
 legend([p1,p2,p3],'SO1','SO2','SO3', 'Location', 'southeast')
 hold off
 
-fig_title = sprintf('Results/Figures/SO_dist_evolution_%d_el.pdf', n_elements);
-% exportgraphics(f_dist,fig_title,'Resolution',1200)
+fig_title = sprintf('Results/Figures/B_shape_optimization/SO_dist_evolution_%d_el.pdf', n_elements);
+exportgraphics(f_dist,fig_title,'Resolution',1200)
 
-
-%% PLOT NORMALIZED SWIMMING DISTANCE FOR THE 3 EXPERIMENTS ________________
-% normalized by the quantity of energy available, i.e., the size of the
-% muscles
-f_norm_dist = figure('units','centimeters','position',[3 3 9 6]);
-hold on
-p1 = plot(out1.xEnergyEvo*100,'LineWidth',1);
-p2 = plot(out1.xEnergyEvo*100,'--','LineWidth',1);
-p3 = plot(out1.xEnergyEvo*100,'-.','LineWidth',1);
-grid on
-ylabel('Normalized swimming distance')
-xlabel('Iterations')
-legend([p1,p2,p3], 'SO1','SO2','SO3', 'Location', 'northwest')
-hold off
-
-fig_title = sprintf('Results/Figures/SO_normalized_dist_evolution_%d_el.pdf', n_elements);
-% exportgraphics(f_norm_dist,fig_title,'Resolution',1200)
