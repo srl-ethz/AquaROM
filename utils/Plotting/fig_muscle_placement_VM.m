@@ -109,7 +109,7 @@ function fig = fig_muscle_placement_VM(Mesh, nodes, elements, muscleBoundaries, 
     L = [Lx,Ly,Lz];
     O = [-Lx,-Ly/2,-Lz/2];
     plotcube(L,O,.05,[0 0 0]);
-    v1 = reshape(-VMn(:,1), 3, []).';
+    v1 = reshape(VMn(:,1), 3, []).';
     PlotFieldonDeformedMesh_ext(nodes, elementPlot, v1, 'factor', max(nodes(:,2)),'lineWidth',0.2);
 
     
