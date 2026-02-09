@@ -33,7 +33,7 @@ if n_elements == 8086
     expName1 = "SO1";
     expName2 = "SO2";
     expName3 = "SO3"; 
-elseif n_lemenets == 16009
+elseif n_elements == 16009
     expName1 = "SO4";
     expName2 = "SO5";
     expName3 = "SO6"; 
@@ -69,7 +69,7 @@ set(f1,'Units','centimeters');
 h = 0.02;
 tmax = 2.0;
 kActu = 6.0*1e4;    % multiplicative factor for the actuation forces (8086 elements)
-% kActu = 2.8*1e5;       % value for 16009 elements
+kActu = 5.5*1e4;       % value for 16009 elements
 
 %% OPTIMISATION SO1 _______________________________________________________
 
@@ -167,7 +167,7 @@ out2 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'convCrit',0.01, ...   % set to 0.01 for 8086el, 0.01 for 16609
     'convCritCost',0.5, ... % set to 0.5 for 4270 el, 0.5 for 16609
     'barrierParam',barrierParam, ...
-    'gStepSize',0.0004,...   % set to 0.0005 for 8086, 0.0002 for 16609
+    'gStepSize',0.0002,...   % set to 0.0005 for 8086, 0.0002 for 16609
     'nRebuild',5, ...
     'rebuildThreshold',0.15,...
     'wSize', 5, ...
@@ -204,7 +204,7 @@ b = [0.5;0.5;
     0.25;0.25;
     0.25;0.25;
     0.2;0.01];
-barrierParam = 2*ones(1,length(b)); % 3 for 8086, 1  for 16009
+barrierParam = 1*ones(1,length(b)); % 2 for 8086, 1  for 16009
 
 PARAM_INIT = 0;
 if PARAM_INIT == 1
@@ -229,7 +229,7 @@ out3 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'VOLUME',VOLUME, ...
     'maxIteration',50, ...
     'convCrit',0.015, ...    % set to 0.015 for 8086el, 0.015 for 16609
-    'convCritCost',5.0, ...% set to 5.0 for 8086, 8.0 for 16609
+    'convCritCost',8.0, ...% set to 5.0 for 8086, 8.0 for 16609
     'barrierParam',barrierParam, ...
     'gStepSize',0.0003, ... % set to 0.0003 for 8086, 0.0003 for 16609
     'nRebuild',5, ...
@@ -298,7 +298,7 @@ fig_title = sprintf('Results/Figures/B_shape_optimization/SO%d_opt_shape_%d_el_k
 exportgraphics(f_opt_shape,strcat(fig_title,'.pdf'),'Resolution',1200)
 
 %% PRINT RESULTS AND PERFORMANCE STATS ____________________________________
-SOIdx = 3;
+SOIdx = 1;
 switch SOIdx
     case 1
         xiStar = out1.xiStar;
