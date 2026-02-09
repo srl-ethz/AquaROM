@@ -38,6 +38,8 @@ load(results_filename)
 % nominal model
 [MeshNominal, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
 [Lx, Ly, Lz] = mesh_dimensions_3D(nodes);
+
+%%
 volVector = compute_nominal_vol_per_element(MeshNominal,size(elements,1));
 headNode = find_node(0, 0, 0, nodes);
 for l=1:length(nsetBC)
@@ -85,7 +87,7 @@ legend('show')
 hold off
 
 % select iteration step to analyse
-rebuildIdx = rebuildIdx(1:5);
+rebuildIdx = rebuildIdx(1:end);
 middleIdx = [3,7,10, 13];
 
 % parameters at selected rebuild idx
@@ -137,6 +139,9 @@ ylabel('$$L$$')
 xlabel('Iterations')
 legend('show')
 hold off
+
+fig_title = sprintf('Results/Figures/Appendix/PROM_local_validity/cost_function_with_markers.pdf');
+exportgraphics(f_cost,fig_title,'Resolution',1200)
 
 %% RUN MODELS SEGMENT A-a-B _________________________________________________
 
