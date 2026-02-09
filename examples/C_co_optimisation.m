@@ -74,9 +74,9 @@ b = [0.5;0.5;
     0.5;0.5;
     0.5;0.5;
     0.40;-0.05];
-barrierParam = 1*ones(1,length(b));
+barrierParam = 0.9*ones(1,length(b));
 
-w1 = 0.98;   % weight on distance objective
+w1 = 0.7;   % weight on distance objective
 w2 = 1-w1;  % weight on energy objective
 
 % Optimisation
@@ -90,8 +90,8 @@ out = optimise_shape_actuation(myElementConstructor,nsetBC, ...
     'convCritCost',1.0, ... 
     'barrierParam',barrierParam, ...
     'gStepSize',0.0006, ...  % 0.0005 ok
-    'nRebuild',15, ...
-    'rebuildThreshold',0.3,...
+    'nRebuild',10, ...
+    'rebuildThreshold',0.15,...
     'wSize', 5, ...
     'USEJULIA',1, ...
     'paramInit', [0.2], ... % for actuation signal (amplitude)
@@ -114,31 +114,31 @@ filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
 save(filename,'out')
 
 %% RESULTS ANALYSIS _______________________________________________________
-w1 = 0.5;
+w1 = 0.2;
 filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
                    w1, 1-w1);
 load(filename)
 out_1 = out;
 
-w1 = 0.7;
+w1 = 0.3;
 filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
                     w1, 1-w1);
 load(filename)
 out_2 = out;
 
-w1 = 0.2;
+w1 = 0.4;
 filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
                     w1, 1-w1);
 load(filename)
 out_3 = out;
 
-w1 = 0.9;
+w1 = 0.5;
 filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
                     w1, 1-w1);
 load(filename)
 out_4 = out;
 
-w1 = 0.98;
+w1 = 0.7;
 filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
                     w1, 1-w1);
 load(filename)
@@ -147,16 +147,36 @@ out_5 = out;
 
 %%
 % Put all trajectories in cell arrays
-X = {out_1.LObj2Evo, out_2.LObj2Evo, out_3.LObj2Evo, out_5.LObj2Evo};   % add more if needed
-Y = {out_1.LObj1Evo, out_2.LObj1Evo, out_3.LObj1Evo, out_5.LObj1Evo};
+X = {out_1.LObj2Evo, out_2.LObj2Evo, out_3.LObj2Evo, out_4.LObj2Evo, out_5.LObj2Evo};   % add more if needed
+Y = {out_1.LObj1Evo, out_2.LObj1Evo, out_3.LObj1Evo, out_4.LObj1Evo, out_5.LObj1Evo};
 
-
-% set(gca, 'XScale', 'log')
-% set(gca, 'YScale', 'linear')
 f = figure('units','centimeters','position',[3 3 9 9]);
 defaultColors = get(gca, 'ColorOrder');
 hold on
 
+% Pareto optimium _________________________________________________________
+% collect end points
+xe = cellfun(@(v) v(end), X);
+ye = cellfun(@(v) v(end), Y);
+
+% sort (required for 1D interpolation)
+[xe, idx] = sort(xe);
+ye = ye(idx);
+
+% smooth nonlinear link (choose one)
+xq = linspace(min(xe), max(xe), 200);
+
+yq = interp1(xe, ye, xq, 'pchip');   % shape-preserving cubic (robust)
+% plot link + markers
+plot(xq, yq, '--', 'LineWidth', 1.0, 'Color', 'k');      % the nonlinear curve
+
+% annotation
+quiver(18, -620, 2.3, 90, 0, 'MaxHeadSize', 0, 'Color', 'k')
+text(8, -650, 'Pareto front', 'Fontsize', 10)
+text(9, -710, '(optima)', 'Fontsize', 10)
+
+
+% Optimization trajectories _______________________________________________
 for k = 1:numel(X)
 
     % plot trajectory and capture handle
@@ -169,18 +189,87 @@ for k = 1:numel(X)
     plot(X{k}(end), Y{k}(end), ...
         'o', 'MarkerFaceColor', c, ...
         'Color', c, ...
-        'MarkerSize', 6, 'LineWidth', 2);
+        'MarkerSize', 8, 'LineWidth', 2);
 
 end
 
 % start marker
 plot(X{1}(1), Y{1}(1), ...
     'x', 'Color', 'k', ...
-    'MarkerSize', 12, 'LineWidth', 2);
+    'MarkerSize', 15, 'LineWidth', 2);
 
 xlabel('$L_{energy}$','Interpreter','latex')
 ylabel('$L_{distance}$','Interpreter','latex')
+ylim([-900 0])
+xlim([5, 45])
 grid on
+ax = gca;
+
+ax.Position = [0.15 0.15 0.75 0.75];
+axpos = ax.Position;
+
+% Start annotation
+text(31, -75, 'nominal', ...
+    'FontSize', 10, ...
+    'HorizontalAlignment', 'left')
+
+% Weights annotation ______________________________________________________
+text(7, -200, '$w_2 \gg w_1$', ...
+    'FontSize', 10, ...
+    'HorizontalAlignment', 'left', 'Interpreter', 'latex')
+
+text(34, -650, '$w_1 \gg w_2$', ...
+    'FontSize', 10, ...
+    'HorizontalAlignment', 'left', 'Interpreter', 'latex')
+
+
+
+% Rop arrow _______________________________________________________________
+x1 = axpos(1)+0.04;
+x2 = axpos(1) + axpos(3) - 0.04;
+y  = axpos(2) + axpos(4) + 0.03;
+
+annotation(f,'arrow',[x1 x2],[y y]);
+
+annotation(f,'textbox', ...
+    [mean([x1 x2]) y-0.01 0.001 0.001], ...
+    'String','{-  \hspace{0.4cm}  energy consumption  \hspace{0.4cm}  +}', ...
+    'Interpreter','latex', ...
+    'EdgeColor','none', ...
+    'HorizontalAlignment','center', ...
+    'VerticalAlignment','bottom');
+
+% Right arrow _____________________________________________________________
+x = axpos(1) + axpos(3) + 0.04;
+y1 = axpos(2) + axpos(4)- 0.04;
+y2 = axpos(2) + 0.04;
+
+annotation(f,'arrow',[x x],[y1 y2]);
+
+annotation(f,'textbox', ...
+    [x mean([y1 y2]) 0.001 0.001], ...
+    'Interpreter','latex', ...
+    'EdgeColor','none', ...
+    'HorizontalAlignment','center', ...
+    'VerticalAlignment','middle');
+
+% create invisible overlay axes in normalized figure coordinates
+ax_overlay = axes('Position',[0 0 1 1], ...
+                  'Color','none', ...
+                  'XLim',[0 1], 'YLim',[0 1], ...
+                  'Visible','off');
+
+% vertical label centered on arrow
+text(ax_overlay, ...
+    x+0.01, mean([y1 y2]), ...
+    '-  \hspace{0.4cm}swimming distance\hspace{0.4cm} +', ...
+    'Rotation', -90, ...
+    'HorizontalAlignment','center', ...
+    'VerticalAlignment','bottom', ...
+    'Interpreter','latex');
+
+
+
 fig_title = sprintf('Results/Figures/C_co_optimization/cost_trajectories_co_optimization.pdf');
 exportgraphics(f,fig_title,'Resolution',1200)
 

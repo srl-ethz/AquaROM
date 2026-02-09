@@ -22,7 +22,7 @@ set(groot,'defaultAxesTickLabelInterpreter','latex');
 load('parameters.mat') 
 
 % specify and create FE mesh
-n_elements = 16009;%8086;
+n_elements = 16009; %8086; %16009;
 filename = strcat('InputFiles/3d_rectangle_', num2str(n_elements), 'el');
 
 [MeshNominal, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
@@ -33,10 +33,12 @@ if n_elements == 8086
     expName1 = "SO1";
     expName2 = "SO2";
     expName3 = "SO3"; 
+    kActu = 6.0*1e4;    % multiplicative factor for the actuation forces
 elseif n_elements == 16009
     expName1 = "SO4";
     expName2 = "SO5";
-    expName3 = "SO6"; 
+    expName3 = "SO6";
+    kActu = 5.5*1e4;
 else
     fprintf("n_elements must be either 8086 or 16009 to replicate the results.")
 end
@@ -51,8 +53,6 @@ end
 % plot an example, with SO1 parameters
 U = [z_tail,z_head,y_thinFish];
 xiPlot = [-0.5;0.5,;-0.5];
-U = [y_fin];
-xiPlot = [0.5];
 f1 = figure('units','centimeters','position',[3 3 10 7],'name','Shape-varied mesh');
 elementPlot = elements(:,1:4); hold on 
 v1 = reshape(U*xiPlot, 3, []).';
@@ -68,8 +68,6 @@ set(f1,'Units','centimeters');
 %% OPTIMIZATION PARAMETERS
 h = 0.02;
 tmax = 2.0;
-kActu = 6.0*1e4;    % multiplicative factor for the actuation forces (8086 elements)
-kActu = 5.5*1e4;       % value for 16009 elements
 
 %% OPTIMISATION SO1 _______________________________________________________
 
@@ -260,7 +258,7 @@ filename = sprintf('Results/Data/B_shape_optimization/%s_%d_el_kActu_%.3f.mat', 
 load(filename)
 %% PLOT OPTIMAL SHAPE _____________________________________________________
 
-SOIdx =   3;
+SOIdx =   1;
 switch SOIdx
     case 1
         xiStar = out1.xiStar;
@@ -298,7 +296,7 @@ fig_title = sprintf('Results/Figures/B_shape_optimization/SO%d_opt_shape_%d_el_k
 exportgraphics(f_opt_shape,strcat(fig_title,'.pdf'),'Resolution',1200)
 
 %% PRINT RESULTS AND PERFORMANCE STATS ____________________________________
-SOIdx = 1;
+SOIdx = 3;
 switch SOIdx
     case 1
         xiStar = out1.xiStar;
