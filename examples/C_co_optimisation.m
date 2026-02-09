@@ -55,46 +55,51 @@ set(f1,'Units','centimeters');
 %% OPTIMIZATION PARAMETERS
 h = 0.02;
 tmax = 2.0;
-kActu = 3.1*1e5;    % multiplicative factor for the actuation forces (8086 elements)
-kActu = 5.0*1e4;   %7.4
-% kActu = 2.8*1e5;       % value for 16009 elements
+kActu = 6.0*1e4;
 
-
-%% OPTIMISATION TEST 1 ____________________________________________________
+%% CO-OPTIMISATION  _______________________________________________________
 
 % Preparation (shape variation and opt. constraints). Need to provide U as
 % we solve a PROM. We only use the gradient from the actuation however.
-U_1 = [z_tail,z_head,y_thinFish]; 
-nParam = 4; % 3 shape parameters and 1 actuation paramter
+% Preparation (shape variation and opt. constraints)
+U_2 = [z_tail,z_head,y_linLongTail,y_head,y_ellipseFish];
+nParam = 6;
 A = zeros(2 * nParam, nParam);
 for i = 1:nParam
     A(2*i-1:2*i,i) =[1;-1];
 end
 b = [0.5;0.5;
+    0.4;0.4;
+    0.4;0.4;
     0.5;0.5;
-    0.15;0.15;
-    0.4;0];
-barrierParam = 5*ones(1,length(b));
+    0.5;0.5;
+    0.40;-0.05];
+barrierParam = 1*ones(1,length(b));
+
+w1 = 0.98;   % weight on distance objective
+w2 = 1-w1;  % weight on energy objective
 
 % Optimisation
 tStart = tic;
 out = optimise_shape_actuation(myElementConstructor,nsetBC, ...
-    nodes,elements,muscleBoundaries,kActu,U_1,h,tmax,A,b, ...
+    nodes,elements,muscleBoundaries,kActu,U_2,h,tmax,A,b, ...
     'FORMULATION',FORMULATION, ...
     'VOLUME',VOLUME, ...
     'maxIteration',40, ...
     'convCrit',0.002, ... 
     'convCritCost',1.0, ... 
     'barrierParam',barrierParam, ...
-    'gStepSize',0.0004, ...  
-    'nRebuild',6, ...
-    'rebuildThreshold',0.05,...
+    'gStepSize',0.0008, ...  % 0.0005 ok
+    'nRebuild',15, ...
+    'rebuildThreshold',0.3,...
     'wSize', 5, ...
     'USEJULIA',1, ...
     'paramInit', [0.2], ... % for actuation signal (amplitude)
-    'w1', 1, ...
-    'w2', 10,...
-    'alphaActu', 300);    
+    'w1', w1, ...
+    'w2', w2,...
+    'alphaActu', 1000, ...
+    'rebuildThresholdActu', 0.05, ...
+    'learningRateActu', 0.002);%0.001    
 out.tOpti = toc(tStart)/60;   % unit is minute
 out.tPerIt = out.tOpti/out.nIt;
 
@@ -104,23 +109,77 @@ fprintf('Number of built models and solved EoMs: %3d\n',out.nIt)
 fprintf('Computation time per models/EoMs: %.2f\n',out.tPerIt)
 
 % Save results
-filename = sprintf('Results/Data/C_actuation_optimization/actuation_only_%d_el_kActu_%.3f.mat', ...
-                   n_elements, kActu);
+filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
+                   w1, w2);
 save(filename,'out')
 
 %% RESULTS ANALYSIS _______________________________________________________
-filename = sprintf('Results/Data/C_actuation_optimization/actuation_only_%d_el_kActu_%.3f.mat', ...
-                   n_elements, kActu);
+w1 = 0.5;
+filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
+                   w1, 1-w1);
 load(filename)
+out_1 = out;
 
-f_dist = figure('units','centimeters','position',[3 3 9 6]);
+w1 = 0.7;
+filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
+                    w1, 1-w1);
+load(filename)
+out_2 = out;
+
+w1 = 0.2;
+filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
+                    w1, 1-w1);
+load(filename)
+out_3 = out;
+
+w1 = 0.9;
+filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
+                    w1, 1-w1);
+load(filename)
+out_4 = out;
+
+w1 = 0.98;
+filename = sprintf('Results/Data/C_co_optimization/C_w1_%.2f_w2_%.2f.mat', ...
+                    w1, 1-w1);
+load(filename)
+out_5 = out;
+
+
+%%
+% Put all trajectories in cell arrays
+X = {out_1.LObj2Evo, out_2.LObj2Evo, out_3.LObj2Evo, out_5.LObj2Evo};   % add more if needed
+Y = {out_1.LObj1Evo, out_2.LObj1Evo, out_3.LObj1Evo, out_5.LObj1Evo};
+
+defaultColors = get(gca, 'ColorOrder');
+figure('units','centimeters','position',[3 3 9 9]);
 hold on
-p1 = plot(out.xEvo*100,'LineWidth',1);
+
+for k = 1:numel(X)
+
+    % plot trajectory and capture handle
+    p = plot(X{k}, Y{k}, '-o', 'LineWidth', 1, 'Color', defaultColors(k,:));
+
+    % use same color for markers
+    c = p.Color;
+
+    % end marker
+    plot(X{k}(end), Y{k}(end), ...
+        'o', 'MarkerFaceColor', c, ...
+        'Color', c, ...
+        'MarkerSize', 6, 'LineWidth', 2);
+
+end
+
+% start marker
+plot(X{1}(1), Y{1}(1), ...
+    'x', 'Color', 'k', ...
+    'MarkerSize', 12, 'LineWidth', 2);
+
+xlabel('$L_{energy}$','Interpreter','latex')
+ylabel('$L_{distance}$','Interpreter','latex')
 grid on
-ylabel('Swimming distance [cm]')
-xlabel('Iterations')
-legend([p1],'AO1', 'Location', 'southeast')
-hold off
+
+
 
 
 

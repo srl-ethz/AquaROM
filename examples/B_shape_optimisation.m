@@ -22,7 +22,7 @@ set(groot,'defaultAxesTickLabelInterpreter','latex');
 load('parameters.mat') 
 
 % specify and create FE mesh
-n_elements = 8086;
+n_elements = 16009;%8086;
 filename = strcat('InputFiles/3d_rectangle_', num2str(n_elements), 'el');
 
 [MeshNominal, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
@@ -84,7 +84,7 @@ A = [1 0 0 ;
 b = [0.5;0.5;0.5;0.5;0.15;0.15];
 barrierParam = 10*ones(1,length(b));
 
-PARAM_INIT = 2;
+PARAM_INIT = 0;
 if PARAM_INIT == 1
     paramInit = [-0.01;0.06; -0.13];
     filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit1__%d_el_kActu_%.3f.mat', ...
@@ -106,10 +106,10 @@ out1 = optimise_shape_3D(myElementConstructor,nsetBC, ...
     'FORMULATION',FORMULATION, ...
     'VOLUME',VOLUME, ...
     'maxIteration',40, ...
-    'convCrit',0.004, ... % 0.004 for 8086, 0.01 for 16009
-    'convCritCost',1.0, ... % 1.0 for 8086, 2.0 for 16009
+    'convCrit',0.01, ... % 0.004 for 8086, 0.01 for 16009
+    'convCritCost',2.0, ... % 1.0 for 8086, 2.0 for 16009
     'barrierParam',barrierParam, ...
-    'gStepSize',0.0004, ...  % 0.0004 for 8086, 0.0002 for 16609
+    'gStepSize',0.0002, ...  % 0.0004 for 8086, 0.0002 for 16609
     'nRebuild',6, ...
     'rebuildThreshold',0.15,...
     'wSize', 5, ...
@@ -142,7 +142,7 @@ b = [0.5;0.5;
     0.5;0.5];
 barrierParam = 2*ones(1,length(b));
 
-PARAM_INIT = 2;
+PARAM_INIT = 0;
 if PARAM_INIT == 1
     paramInit = [-0.43;0.04; -0.17;0.27;-0.43];
     filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit1__%d_el_kActu_%.3f.mat', ...
@@ -206,7 +206,7 @@ b = [0.5;0.5;
     0.2;0.01];
 barrierParam = 2*ones(1,length(b)); % 3 for 8086, 1  for 16009
 
-PARAM_INIT = 2;
+PARAM_INIT = 0;
 if PARAM_INIT == 1
     paramInit = [-0.49; 0.09; -0.23;0.02;-0.16;0.1;-0.15;0.14];
     filename = sprintf('Results/Data/Appendix/Param_init/%s_pInit1__%d_el_kActu_%.3f.mat', ...
