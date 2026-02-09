@@ -54,7 +54,7 @@ function nablaLr = gradient_cost_function_w_constraints_multi_objective(p,eta,s,
     end  
     
     % Objective 2
-    dLdpActu = alphaActu*[zeros(size(p(1:end-1)));1];
+    dLdpActu = 2*alphaActu*[zeros(size(p(1:end-1)));1];
     nablaLr = nablaLr + w2*dLdpActu;
     
     % part stemming from log barrier functions

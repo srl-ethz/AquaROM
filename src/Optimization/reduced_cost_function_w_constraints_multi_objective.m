@@ -50,7 +50,7 @@ function [L,LwoB,LObj1,LObj2] = ...
     end
     
     % Objective 2: minimize energy use, i.e., actuation amplitude
-    LObj2 = LObj2 + alphaActu*p(end);
+    LObj2 = LObj2 + alphaActu*p(end).^2;
     
     L = w1*LObj1 + w2*LObj2;
     

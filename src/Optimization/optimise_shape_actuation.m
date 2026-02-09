@@ -51,7 +51,8 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
     % parse input
     [maxIteration,convCrit,convCritCost,barrierParam,gStepSize,nRebuild,...
         rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA, ...
-        paramInit, w1, w2, alphaActu] = parse_inputs(varargin{:});
+        paramInit, w1, w2, alphaActu, ...
+        rebuildThresholdActu, learningRateActu] = parse_inputs(varargin{:});
 
     fprintf('**************************************\n')
     fprintf('Solving for the nominal structure...\n')
@@ -88,7 +89,7 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
     
     nParam = length(p_k);
     gradientWeights = ones(1,nParam);
-    gradientWeights(end)=0.1;
+    gradientWeights(end)=learningRateActu;  % separate learning rate for actuation parameter
 
     % Mesh
             
@@ -170,7 +171,8 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
         fprintf('**************************************\n')
 
         % possible rebuilding of a PROM
-        if check_cond_rebuild(k,lastRebuild,nRebuild,xiRebuild_k,rebuildThreshold,maxIteration)
+        if check_cond_rebuild(k,lastRebuild,nRebuild,xiRebuild_k,rebuildThreshold,maxIteration) || ...
+                check_cond_rebuild_actu(pActuRebuild_k, rebuildThresholdActu)
             lastRebuild = k;
             rebuildIdx = [rebuildIdx, lastRebuild]; 
          
@@ -264,7 +266,7 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
         xi_k = p_k(1:nShapeParam);
         pActu_k = p_k(nShapeParam+1:end);
         xiRebuild_k = pRebuild_k(1:nShapeParam);
-        pActuRebuild_k = p_k(nShapeParam+1:end);
+        pActuRebuild_k = pRebuild_k(nShapeParam+1:end);
         
         nablaWEvo = [nablaWEvo, diag(gradientWeights)*nablaLr];
 
@@ -286,7 +288,7 @@ function out = optimise_shape_actuation(myElementConstructor,nset,nodes,elements
             xi_k = p_k(1:nShapeParam);
             pActu_k = p_k(nShapeParam+1:end);
             xiRebuild_k = pRebuild_k(1:nShapeParam);
-            pActuRebuild_k = p_k(nShapeParam+1:end);
+            pActuRebuild_k = pRebuild_k(nShapeParam+1:end);
             
         end
 
@@ -333,7 +335,7 @@ end
 % Parse input _____________________________________________________________
 function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
     nRebuild,rebuildThreshold,wSize,FORMULATION,VOLUME,USEJULIA,...
-    paramInit,w1,w2,alphaActu] = parse_inputs(varargin)
+    paramInit,w1,w2,alphaActu, rebuildThresholdActu, learningRateActu] = parse_inputs(varargin)
     defaultMaxIteration = 50;
     defaultConvCrit = 0.001;
     defaultConvCritCost = 0.1;
@@ -349,6 +351,8 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
     defaultw1 = 0.5;
     defaultw2 = 0.5;
     defaultalphaActu = 5;
+    defaultRebuildThresholdActu = 0.1;
+    defaultLearningRateActu = 1.0;
     p = inputParser;
     addParameter(p,'maxIteration',defaultMaxIteration, @(x)validateattributes(x, ...
                     {'numeric'},{'nonempty','integer','positive'}) );
@@ -380,6 +384,10 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
                     {'numeric'},{'nonempty'}) );
     addParameter(p,'alphaActu',defaultalphaActu,@(x)validateattributes(x, ...
                     {'numeric'},{'nonempty'}) );
+   addParameter(p,'rebuildThresholdActu',defaultRebuildThresholdActu,@(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
+   addParameter(p,'learningRateActu',defaultLearningRateActu, @(x)validateattributes(x, ...
+                    {'numeric'},{'nonempty'}) );
                
     parse(p,varargin{:});
     
@@ -398,6 +406,8 @@ function [maxIteration,convCrit,convCritCost,barrierParam,gStepSize, ...
     w1 = p.Results.w1;
     w2 = p.Results.w2;
     alphaActu = p.Results.alphaActu;
+    rebuildThresholdActu = p.Results.rebuildThresholdActu;
+    learningRateActu = p.Results.learningRateActu;
 end
 
 % Check condition for rebuild _____________________________________________
@@ -420,6 +430,18 @@ function cond = check_cond_rebuild(k,lastRebuild,nRebuild, xiRebuild_k, ...
         cond = 1;
         fprintf('____________________\n')
         fprintf('Rebuilding PROM (max lin. iteration - close to end) ...\n')
+    end
+    
+end
+
+% Check condition for rebuild based on actuation parameter ________________
+function cond = check_cond_rebuild_actu(pActuRebuild_k, rebuildThresholdActu)
+    cond = 0;
+
+    if abs(pActuRebuild_k) > rebuildThresholdActu
+        cond = 1;
+        fprintf('____________________\n')
+        fprintf('Rebuilding PROM (delta pActu>threshold) \n')  
     end
     
 end
