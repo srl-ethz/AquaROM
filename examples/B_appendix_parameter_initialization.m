@@ -70,8 +70,8 @@ out2_2 = out2;
 out2_3 = out3;
 
 %% PRINT RESULTS AND PERFORMANCE STATS ____________________________________
-SOIdx = 3;
-initIdx = 2;
+SOIdx = 3
+initIdx = 2
 switch initIdx
     case 0
         switch SOIdx
