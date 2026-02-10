@@ -7,6 +7,7 @@
 % Last modified: 06/02/2026, Mathieu Dubied, ETH Zurich
 % ------------------------------------------------------------------------
 function fig = fig_comparison_PROM_approximation(timePlot, ...
+                                uHead_nominal, uTail_nominal, ...
                                 uHead_exact, uHead_approx, ...
                                 uTail_exact, uTail_approx, ...
                                 Lx, Ly, position)
@@ -16,11 +17,13 @@ function fig = fig_comparison_PROM_approximation(timePlot, ...
     % x-position (Head) ___________________________________________________
     uHead_exact = uHead_exact(1,:);
     uHead_approx = uHead_approx(1,:);
+    uHead_nominal = uHead_nominal(1,:);
     
     subplot(2,1,1);
     hold on;
-    p1 = plot(timePlot, uHead_exact, 'DisplayName', 'Ground truth', 'LineWidth', 1.0);
-    p2 = plot(timePlot, uHead_approx, '--','DisplayName', 'Approximation', 'LineWidth', 1.0);
+    plot(timePlot, uHead_exact, 'DisplayName', 'Ground truth', 'LineWidth', 1.0);
+    plot(timePlot, uHead_approx, '--','DisplayName', 'Approximation', 'LineWidth', 1.0);
+    plot(timePlot, uHead_nominal, ':','DisplayName', 'Nominal', 'LineWidth', 1.0);
     grid on;
     xlabel('Time [s]');
     
@@ -47,11 +50,13 @@ function fig = fig_comparison_PROM_approximation(timePlot, ...
     % y-position (Tail) ___________________________________________________
     uTail_exact = uTail_exact(2,:);
     uTail_approx = uTail_approx(2,:);
+    uTail_nominal = uTail_nominal(2,:);
 
     subplot(2,1,2);
     hold on;
-    p1 = plot(timePlot, uTail_exact, 'DisplayName', 'Ground truth', 'LineWidth', 1.0);
-    p2 = plot(timePlot, uTail_approx, '--','DisplayName', 'Approximation', 'LineWidth', 1.0);
+    plot(timePlot, uTail_exact, 'DisplayName', 'Ground truth', 'LineWidth', 1.0);
+    plot(timePlot, uTail_approx, '--','DisplayName', 'Approximation', 'LineWidth', 1.0);
+    plot(timePlot, uTail_nominal, ':','DisplayName', 'Nominal', 'LineWidth', 1.0);
     grid on;
     xlabel('Time [s]');
     
