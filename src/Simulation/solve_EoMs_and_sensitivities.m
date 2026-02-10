@@ -52,13 +52,13 @@ function TI_NL_PROM = solve_EoMs_and_sensitivities(V,PROM_Assembly,fIntTensors,t
     B1B = actuBottom.B1;
     B2T = actuTop.B2;
     B2B = actuBottom.B2;
-    
+
     actuSignalT = @(t) kActu/2*(-0.2*sin(t*2*pi));    % to change below as well if needed
     actuSignalB = @(t) kActu/2*(0.2*sin(t*2*pi));
     
     fActu = @(t,q)  kActu/2*(-0.2*sin(t*2*pi))*(B1T+B2T*q) + ...
                     kActu/2*(0.2*sin(t*2*pi))*(B1B+B2B*q);
-
+                
     % tail pressure force properties
     A = tailProperties.A;
     B = tailProperties.B;
