@@ -1,7 +1,7 @@
 % ------------------------------------------------------------------------ 
-% Creation of Figure 10, containing all shape variation used
+% Creation of appendix figure containing addition shape variation used
 % 
-% Last modified: 07/02/2025, Mathieu Dubied, ETH Zurich
+% Last modified: 10/02/2026, Mathieu Dubied, ETH Zurich
 %
 % ------------------------------------------------------------------------
 clear; 
@@ -24,17 +24,19 @@ filename = 'InputFiles/3d_rectangle_8086el';
 
 %% DEFINE SHAPE VARIATIONS ________________________________________________
 [y_thinFish,z_smallFish,z_tail,z_head,z_linLongTail, z_notch,...
-    y_tail,y_head,y_linLongTail,y_ellipseFish, xz_concaveTail] = ...
+    y_tail,y_head,y_linLongTail,y_ellipseFish, xz_concaveTail, y_fin, ...
+    y_bumpBack, y_bumpFront] = ...
     shape_variations_3D(nodes,Lx,Ly,Lz);
 
-U = [z_tail, z_head, y_thinFish, ... 
-    y_linLongTail, y_head,y_ellipseFish, ... 
-    z_smallFish, z_notch xz_concaveTail];
+[z_tail_1, z_tail_2] = ...
+    shape_variations_3D_extra(nodes,Lx,Ly,Lz);
+U = [y_linLongTail,y_head, y_fin, y_bumpBack, ... 
+    z_tail_1, z_tail_2];
 
 
 %%
 %  create_subplot(subU,xiPlot,nr_sv,nodes,elementPlot,L,O, textPos)
-
+elementPlot = elements(:,1:4); 
 f1 = figure
 create_subplot(U(:,1), 0.5, num2str(i), nodes, elementPlot, L, O, textPos);
 % exportgraphics(f1, 'figure.svg', 'BackgroundColor', 'none')
@@ -54,7 +56,7 @@ exportgraphics(f1,'transparent.eps',...   % since R2020a
 
 
 %% PLOT SHAPE VARIATIONS __________________________________________________
-f1 = figure('units','centimeters','position',[3 3 19 10.8]);
+f1 = figure('units','centimeters','position',[3 3 19 7.2]);
 elementPlot = elements(:,1:4); hold on
 L = [Lx,Ly,Lz];
 O = [-Lx,-Ly/2,-Lz/2];
@@ -64,8 +66,8 @@ textPosZ = -0.14;
 textPos = [textPosX, textPosY, textPosZ];
 
 % Define tiled layout with tighter spacing
-t = tiledlayout(3, 6, 'TileSpacing', 'none', 'Padding', 'tight');
-n_shapeVariations = 9;
+t = tiledlayout(2, 6, 'TileSpacing', 'none', 'Padding', 'tight');
+n_shapeVariations = 6;
 n_subplot = 2 * n_shapeVariations;
 
 % Preallocate an array for the axes handles
@@ -79,12 +81,18 @@ xCenterVec = zeros(n_shapeVariations,1);
 
 for i = 1:n_shapeVariations
     % Shape variation i, positive
+    xiPlot1 = 0.5;
+    xiPlot2 = -0.5;
+    if i==3
+        xiPlot1 = 0.26;
+        xiPlot2 = 0;
+    end
     axesHandles((i-1)*2 + 1) = nexttile(t, (i-1)*2 + 1);
-    create_subplot(U(:,i), 0.5, num2str(i), nodes, elementPlot, L, O, textPos);
+    create_subplot(U(:,i), xiPlot1, num2str(i), nodes, elementPlot, L, O, textPos);
     
     % Shape variation i, negative
     axesHandles((i-1)*2 + 2) = nexttile(t, (i-1)*2 + 2);
-    create_subplot(U(:,i), -0.5, num2str(i), nodes, elementPlot, L, O, textPos);
+    create_subplot(U(:,i), xiPlot2, num2str(i), nodes, elementPlot, L, O, textPos);
     
     % Get the positions of the two subplots
     pos1 = get(axesHandles((i-1)*2 + 1), 'Position');
@@ -112,12 +120,12 @@ axis(axesHandles, [-0.23 0 -0.041 0.041 -0.11 0.11]);
 % Find boxes size and placement
 x1All = min(xVec(1:3:end));
 x2All = min(xVec(2:3:end));
-x3All = min(xVec(3:3:end));
+% x3All = min(xVec(3:3:end));
 xAll = [x1All; x2All; x3All];
 y1All = min(yVec(1:3));
 y2All = min(yVec(4:6));
-y3All = min(yVec(7:9));
-yCenterAll = [yCenterVec(1);yCenterVec(4);yCenterVec(7)];
+% y3All = min(yVec(7:9));
+yCenterAll = [yCenterVec(1);yCenterVec(4)];
 xCenterAll = [xCenterVec(1);xCenterVec(2);xCenterVec(3)];
 % 
 % y1MaxAll = max(yMaxVec(1:3));
@@ -136,7 +144,7 @@ widthAll = widthAll + extraHorSpace;
 heightAll = heightAll + extraVertSpace;
 
 
-exportgraphics(f1,'Figures/10_shape_variations.pdf','Resolution',1200)
+exportgraphics(f1,'../Results/Figures/Appendix/Additional_shape_optimization/additional_shape_variations.pdf','Resolution',1200)
 
 
 % set(gcf, 'color', 'none');    
@@ -186,7 +194,7 @@ exportgraphics(f1,'Figures/10_shape_variations.pdf','Resolution',1200)
 % annotation('line', [0,1], [0.5+heightAll/2,0.5+heightAll/2],'color', 'blue')
 % annotation('line', [0,1], [0.5-heightAll/2,0.5-heightAll/2],'color', 'blue')
 
-% exportgraphics(f1,'shape_variations.pdf','Resolution',1200)
+% exportgraphics(f1,'Resultsshape_variations.pdf','Resolution',1200)
 % exportgraphics(f1,'SO3_shapes_V1.jpg','Resolution',600)
 
 

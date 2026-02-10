@@ -121,8 +121,8 @@ end
 b = [0.5;0.5;
     0.5;0.5;
     0.15;0.15;
-    0.3;0.3;
-    0.3;0.3];
+    0.4;0.4;
+    0.4;0.4];
 barrierParam = 5*ones(1,length(b));
 
 
@@ -222,7 +222,7 @@ load(filename)
 
 %% PLOT OPTIMAL SHAPE _____________________________________________________
 
-SOIdx =   9;
+SOIdx =   7;
 switch SOIdx
     case 7
         xiStar = out7.xiStar;
@@ -260,13 +260,18 @@ fig_title = sprintf('Results/Figures/Appendix/Additional_shape_optimization/SO%d
 exportgraphics(f_opt_shape,strcat(fig_title,'.pdf'),'Resolution',1200)
 
 %% PRINT RESULTS AND PERFORMANCE STATS ____________________________________
-SOIdx = 7;
+SOIdx = 9;
 switch SOIdx
     case 7
         xiStar = out7.xiStar;
         tOpti = out7.tOpti;
         nIt = out7.nIt;
-        tPerIt = out7.tPerIt;    
+        tPerIt = out7.tPerIt; 
+    case 8
+        xiStar = out8.xiStar;
+        tOpti = out8.tOpti;
+        nIt = out8.nIt;
+        tPerIt = out8.tPerIt; 
     case 9
         xiStar = out9.xiStar;
         tOpti = out9.tOpti;
