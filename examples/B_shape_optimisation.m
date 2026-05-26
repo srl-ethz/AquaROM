@@ -24,9 +24,6 @@ load('parameters.mat')
 % specify and create FE mesh
 n_elements = 8086; %16009;
 filename = strcat('InputFiles/3d_rectangle_', num2str(n_elements), 'el');
-ALT_ACTU = 1;   % flag for using the alternative actuation signal of the appendix.
-                % If used, need to also change the actuation signal in
-                % solve_EoMs_and_sensitivities
 
 [MeshNominal, nodes, elements, nsetBC, esetBC] = create_mesh(filename, myElementConstructor, propRigid);
 [Lx, Ly, Lz] = mesh_dimensions_3D(nodes);
@@ -46,11 +43,6 @@ else
     fprintf("n_elements must be either 8086 or 16009 to replicate the results.")
 end
 
-if ALT_ACTU == 1
-    expName1 = "SO10";
-    expName2 = "SO11";
-    expName3 = "SO12";
-end
 
 %% SHAPE VARIATIONS _______________________________________________________
 
