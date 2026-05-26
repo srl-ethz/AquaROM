@@ -1,8 +1,8 @@
-# AquaROM: shape optimization pipeline for soft swimmers using parametric reduced order models
+# Shape Optimization Pipeline Using Parametric Reduced Order Models: An Application to Soft Swimmers
 
 ## Introduction
 
-This repo contains the code used in the paper ``AquaROM: shape optimization pipeline for soft swimmers using parametric reduced order models'' by Mathieu Dubied, Paolo Tiso, and Robert K. Katzschmann [TODO: add link to paper once available]. 
+This repo contains the code used in the paper ``Shape Optimization Pipeline Using Parametric Reduced Order Models: An Application to Soft Swimmers'' by Mathieu Dubied, Paolo Tiso, and Robert K. Katzschmann [TODO: add link to paper once available]. 
 
 The code uses a slightly modified version of the FEM code YetAnotherFEcode (https://github.com/jain-shobhit/YetAnotherFEcode, https://zenodo.org/records/15257935), and implements the algorithm presented in the paper.
 
@@ -42,8 +42,8 @@ If required, an error message will indicate this.
 ## Code description
 To run the code, start by running `startup.m`. The examples presented in the paper are gathered in the folder `examples`, and in particular:
 - `A_FOM_PROM_comparison.m`: compares the FOM to the (P)ROMs (Section 6.1 of the paper).
-- `A_FOM_PROM_comparison_appendix.m`: adds some results to the previous script (Appendix XY of the paper). 
 - `B_shape_optimisation.m`: optimizes the shape of the fish for multiple sets of search parameters (Section 6.2 of the paper).
+- `C_co_optimisation.m`: co-optimizes the shape and the actuation signal's amplitude (Section 6.3 of the paper)
 
 The algorithm and its components are implemented in the folder `src`, with the main file being `src/Optimization
 /optimise_shape_3D.m`.
