@@ -18,7 +18,7 @@ set(groot,'defaultAxesTickLabelInterpreter','latex');
 
 
 %% GRID PARAMETRIZATION ___________________________________________________
-SOIdx =   1;
+SOIdx =   3;
 switch SOIdx
     case 1
         % Constraint for SO1 (upper bound, -lower bound)
@@ -33,7 +33,7 @@ switch SOIdx
             0.5;0.5;
             0.4;0.4;
             0.5;0.5;
-            0.5;0.5];     
+            0.5;0.5]; 
     case 3
         % Constraint for SO3 (upper bound, -lower bound)
         nParam = 8;
@@ -59,15 +59,16 @@ granularity = 0.15; % rebuild criterion of the PROM pipeline
 
 %% GRID STATS _____________________________________________________________
 [nComb, nCorners] = grid_combo_stats(xi_lists);
+timePerSolve = 31; %in sec
 fprintf('\nGrid of SO%d (%d parameters):\n', SOIdx, nParam);
 fprintf('   - N combinations: %d\n', nComb);
 fprintf('   - N corners of hyperbox: %d\n', nCorners);
+fprintf('   - Step granularity: %.2f\n', step_used);
 
-timePerSolve = 32; %in sec
 timeAllCombi = nComb*timePerSolve/60;
 timeAllCorners = nCorners*timePerSolve/60;
 
-fprintf('   - Time for all combination: %.2f min\n', timeAllCombi);
+fprintf('   - Time for all combination: %.2f hours\n', timeAllCombi/60);
 fprintf('   - Time for all corners: %.2f min\n', timeAllCorners);
 
 

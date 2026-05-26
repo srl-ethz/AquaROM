@@ -222,7 +222,7 @@ load(filename)
 
 %% PLOT OPTIMAL SHAPE _____________________________________________________
 
-SOIdx =   7;
+SOIdx =   8;
 switch SOIdx
     case 7
         xiStar = out7.xiStar;
